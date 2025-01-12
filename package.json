@@ -28,12 +28,13 @@
   "author": "Kirill Serebryannyy <sincerely.manny@gmail.com> (sincerely-manny)",
   "license": "MIT",
   "homepage": "https://github.com/sincerely-manny/expo-simple-gallery#readme",
-  "dependencies": {},
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "@types/react": "~18.3.12",
-    "expo-module-scripts": "^4.0.3",
     "expo": "~52.0.0",
-    "react-native": "0.76.0"
+    "expo-module-scripts": "^4.0.3",
+    "react-native": "0.76.0",
+    "typescript": "^5.7.3"
   },
   "peerDependencies": {
     "expo": "*",

@@ -14,7 +14,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "expo.modules.simplegallery.example"
+      "bundleIdentifier": "expo.modules.simplegallery.example",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "This app requires access to the photo library to display images."
+      },
+      "appleTeamId": "6N825MKR9T"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,6 +29,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-dev-client",
+        {
+          "launchMode": "most-recent"
+        }
+      ]
+    ]
   }
 }

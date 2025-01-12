@@ -1,39 +1,14 @@
-import { useEvent } from 'expo';
-import ExpoSimpleGallery, { ExpoSimpleGalleryView } from 'expo-simple-gallery';
-import { Button, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { ExpoSimpleGalleryView } from 'expo-simple-gallery';
+import { SafeAreaView, Text, View } from 'react-native';
 
 export default function App() {
-  const onChangePayload = useEvent(ExpoSimpleGallery, 'onChange');
-
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.container}>
-        <Text style={styles.header}>Module API Example</Text>
-        <Group name="Constants">
-          <Text>{ExpoSimpleGallery.PI}</Text>
-        </Group>
-        <Group name="Functions">
-          <Text>{ExpoSimpleGallery.hello()}</Text>
-        </Group>
-        <Group name="Async functions">
-          <Button
-            title="Set value"
-            onPress={async () => {
-              await ExpoSimpleGallery.setValueAsync('Hello from JS!');
-            }}
-          />
-        </Group>
-        <Group name="Events">
-          <Text>{onChangePayload?.value}</Text>
-        </Group>
-        <Group name="Views">
-          <ExpoSimpleGalleryView
-            url="https://www.example.com"
-            onLoad={({ nativeEvent: { url } }) => console.log(`Loaded: ${url}`)}
-            style={styles.view}
-          />
-        </Group>
-      </ScrollView>
+      <Text style={styles.header}>Module API Example</Text>
+      <ExpoSimpleGalleryView
+
+        style={styles.view}
+      />
     </SafeAreaView>
   );
 }
@@ -68,6 +43,5 @@ const styles = {
   },
   view: {
     flex: 1,
-    height: 200,
   },
 };
