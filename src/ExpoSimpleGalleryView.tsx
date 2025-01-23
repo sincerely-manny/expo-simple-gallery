@@ -1,4 +1,5 @@
 import { requireNativeView } from 'expo';
+import { StyleSheet, View } from 'react-native';
 import type { ExpoSimpleGalleryViewProps } from './ExpoSimpleGallery.types';
 
 const NativeView: React.ComponentType<ExpoSimpleGalleryViewProps> =
@@ -13,20 +14,24 @@ export default function ExpoSimpleGalleryView({
     <NativeView {...props} assets={assets}>
       {assets.map((uri, index) =>
         OverlayComponent ? (
-          // <View
-          //   style={{ borderWidth: 0, width: '100%', height: '100%' }}
-          //   key={uri}
-          //   nativeID="nativeID"
-          // >
-          <OverlayComponent
-            selected={false}
-            uri={uri}
-            index={index}
+          <View
+            style={style.overlay}
             key={uri}
-          />
-          // </View>
+            nativeID="ExpoSimpleGalleryView"
+          >
+            <OverlayComponent
+              selected={false}
+              uri={uri}
+              index={index}
+              key={uri}
+            />
+          </View>
         ) : null
       )}
     </NativeView>
   );
 }
+
+const style = StyleSheet.create({
+  overlay: { borderWidth: 0, width: '100%', height: '100%' },
+});

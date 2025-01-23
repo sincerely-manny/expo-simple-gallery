@@ -2,6 +2,8 @@ final class GalleryGridView: UICollectionView {
   private var configuration = GalleryConfiguration()
   private var uris: [String] = []
   private var cellHierarchy = [Int: [Int: UIView]]()
+  private var visibleOverlays = Set<Int>()
+  private var prefetchIndexPaths: Set<IndexPath> = []
 
   init() {
     let layout = UICollectionViewFlowLayout()
@@ -10,6 +12,7 @@ final class GalleryGridView: UICollectionView {
     backgroundColor = .clear
     dataSource = self
     delegate = self
+    prefetchDataSource = self
     register(GalleryCell.self, forCellWithReuseIdentifier: GalleryCell.identifier)
   }
 
@@ -76,18 +79,54 @@ final class GalleryGridView: UICollectionView {
   }
 
   func setHierarchy(_ hierarchy: [Int: [Int: UIView]]) {
-    // Store old hierarchy for cleanup
-    let oldHierarchy = cellHierarchy
     cellHierarchy = hierarchy
 
-    // Find cells that need updating
-    let changedIndices = Set(oldHierarchy.keys).union(hierarchy.keys)
-    let indexPaths = changedIndices.map { IndexPath(item: $0, section: 0) }
-
-    // Update visible cells only
+    // Update all visible and prefetched cells
+    let indexPaths = Set(indexPathsForVisibleItems).union(prefetchIndexPaths)
     for indexPath in indexPaths {
       if let cell = cellForItem(at: indexPath) as? GalleryCell {
         cell.configureOverlay(with: hierarchy[indexPath.item] ?? [:])
+      }
+    }
+  }
+
+  // Handle cleanup
+  func cleanup() {
+    // Clear all overlays
+    for cell in visibleCells.compactMap({ $0 as? GalleryCell }) {
+      cell.prepareForReuse()
+    }
+    cellHierarchy.removeAll()
+    visibleOverlays.removeAll()
+  }
+}
+
+extension GalleryGridView: UICollectionViewDataSourcePrefetching {
+  func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
+    prefetchIndexPaths.formUnion(indexPaths)
+  }
+
+  func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
+    prefetchIndexPaths.subtract(indexPaths)
+  }
+}
+
+extension GalleryGridView: UICollectionViewDelegate {
+  func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+    updateVisibleCells()
+  }
+
+  func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+    if !decelerate {
+      updateVisibleCells()
+    }
+  }
+
+  private func updateVisibleCells() {
+    let visibleIndexPaths = indexPathsForVisibleItems
+    for indexPath in visibleIndexPaths {
+      if let cell = cellForItem(at: indexPath) as? GalleryCell {
+        cell.configureOverlay(with: cellHierarchy[indexPath.item] ?? [:])
       }
     }
   }

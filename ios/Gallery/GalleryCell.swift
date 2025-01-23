@@ -7,9 +7,9 @@ final class GalleryCell: UICollectionViewCell {
   private var imageLoadTask: Cancellable?
   private var imageLoader: ImageLoaderProtocol
   private var mountedViews = [Int: UIView]()
-  private var currentOverlayView: UIView?
-  private var currentOverlayIndex: Int?
   private var currentOverlayKey: Int?
+  private var isConfiguring = false
+  private var pendingOverlay: [Int: UIView]?
 
   override init(frame: CGRect) {
     imageLoader = ImageLoader()
@@ -36,12 +36,12 @@ final class GalleryCell: UICollectionViewCell {
     overlayContainer.isOpaque = true
 
     // Force a specific size if needed
-//    overlayContainer.layer.zPosition = 999  // Ensure it's above other views
+    //    overlayContainer.layer.zPosition = 999  // Ensure it's above other views
 
     // Debug: Add border to see bounds
-//    overlayContainer.layer.borderWidth = 2
-//    overlayContainer.layer.borderColor = UIColor.yellow.cgColor
-//    overlayContainer.layer.backgroundColor = UIColor.red.withAlphaComponent(0.5).cgColor
+    //    overlayContainer.layer.borderWidth = 2
+    //    overlayContainer.layer.borderColor = UIColor.yellow.cgColor
+    //    overlayContainer.layer.backgroundColor = UIColor.red.withAlphaComponent(0.5).cgColor
 
     NSLayoutConstraint.activate([
       imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -82,42 +82,53 @@ final class GalleryCell: UICollectionViewCell {
   }
 
   func configureOverlay(with viewHierarchy: [Int: UIView]) {
-    // If we have the same overlay, do nothing
+    guard !isConfiguring else {
+      pendingOverlay = viewHierarchy
+      return
+    }
+
+    isConfiguring = true
+    defer {
+      isConfiguring = false
+      if let pending = pendingOverlay {
+        pendingOverlay = nil
+        configureOverlay(with: pending)
+      }
+    }
+
+    // If the same view is already mounted correctly, keep it
     if let currentKey = currentOverlayKey,
-      viewHierarchy[currentKey] != nil
+      let currentView = mountedViews[currentKey],
+      currentView.superview === overlayContainer,
+      let newView = viewHierarchy[currentKey],
+      currentView === newView
     {
       return
     }
 
-    // Clear any existing overlay
-    if let currentKey = currentOverlayKey {
-      // Only unmount if the view is still in our hierarchy
-      if let existingView = mountedViews[currentKey],
-        existingView.superview === overlayContainer
-      {
-        overlayContainer.unmountChildComponentView(existingView, index: 0)
-      }
-      mountedViews.removeValue(forKey: currentKey)
-      currentOverlayKey = nil
-    }
+    // Clear existing overlay
+    clearCurrentOverlay()
 
-    // Mount new overlay if available
-    if let (key, view) = viewHierarchy.first {
-      // Only mount if the view isn't already mounted somewhere
-      if view.superview == nil {
-        overlayContainer.mountChildComponentView(view, index: 0)
-        mountedViews[key] = view
-        currentOverlayKey = key
-      }
+    // Mount new overlay
+    guard let (key, view) = viewHierarchy.first else { return }
+
+    // Only mount if view isn't mounted elsewhere
+    if view.superview == nil {
+      overlayContainer.mountChildComponentView(view, index: 0)
+      mountedViews[key] = view
+      currentOverlayKey = key
+
+      // Position the view
+      view.frame = overlayContainer.bounds
+      view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+      // Force layout
+      overlayContainer.setNeedsLayout()
+      overlayContainer.layoutIfNeeded()
     }
   }
 
-  override func prepareForReuse() {
-    super.prepareForReuse()
-    imageView.image = nil
-    imageLoadTask?.cancel()
-
-    // Clear overlay
+  private func clearCurrentOverlay() {
     if let currentKey = currentOverlayKey,
       let view = mountedViews[currentKey],
       view.superview === overlayContainer
@@ -128,13 +139,12 @@ final class GalleryCell: UICollectionViewCell {
     currentOverlayKey = nil
   }
 
-  deinit {
-    // Ensure cleanup
-    if let currentKey = currentOverlayKey,
-      let view = mountedViews[currentKey],
-      view.superview === overlayContainer
-    {
-      overlayContainer.unmountChildComponentView(view, index: 0)
-    }
+  override func prepareForReuse() {
+    super.prepareForReuse()
+    imageView.image = nil
+    imageLoadTask?.cancel()
+    clearCurrentOverlay()
+    pendingOverlay = nil
+    isConfiguring = false
   }
 }
