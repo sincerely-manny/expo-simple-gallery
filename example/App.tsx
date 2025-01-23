@@ -1,14 +1,54 @@
+import { type Asset, getAssetsAsync } from 'expo-media-library';
 import { ExpoSimpleGalleryView } from 'expo-simple-gallery';
+import { useEffect, useState } from 'react';
 import { SafeAreaView, Text, View } from 'react-native';
 
 export default function App() {
+  const [assets, setAssets] = useState<Asset[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { assets } = await getAssetsAsync({
+        first: 999999,
+      });
+      setAssets(assets);
+    })();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Module API Example</Text>
       <ExpoSimpleGalleryView
-
+        columnsCount={3}
+        thumbnailStyle={{
+          borderRadius: 0,
+          borderWidth: 4,
+          borderColor: '#000000',
+          aspectRatio: 1,
+        }}
+        assets={assets.map(({ uri }) => uri)}
+        thumbnailsSpacing={20}
         style={styles.view}
-      />
+        thumbnailOverlayComponent={({ selected, uri, index }) => (
+          <View
+            style={{
+              backgroundColor: 'green',
+              opacity: 0.6,
+              borderWidth: 10,
+            }}
+          >
+            <Text style={{ fontSize: 32 }}>
+              {index === 6 ? '57' : index + 4}
+            </Text>
+          </View>
+        )}
+      >
+        <View nativeID="thumbnail-0" key={3213} />
+        <Text>Thumbnail2</Text>
+        <Text>Thumbnail3</Text>
+        <Text>Thumbnail4</Text>
+        <Text>Thumbnail5</Text>
+      </ExpoSimpleGalleryView>
     </SafeAreaView>
   );
 }

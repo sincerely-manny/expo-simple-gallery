@@ -1,19 +1,23 @@
-import type { StyleProp, ViewStyle } from 'react-native';
+import type { ComponentType } from 'react';
+import type { ViewProps, ViewStyle } from 'react-native';
 
-export type OnLoadEventPayload = {
-  url: string;
+export type ExpoSimpleGalleryModuleEvents = {};
+
+export type ThumbnailOverlayComponentProps = {
+  uri: string;
+  selected: boolean;
+  index: number;
 };
+export type ThumbnailOverlayComponent =
+  ComponentType<ThumbnailOverlayComponentProps>;
 
-export type ExpoSimpleGalleryModuleEvents = {
-  onChange: (params: ChangeEventPayload) => void;
-};
-
-export type ChangeEventPayload = {
-  value: string;
-};
-
-export type ExpoSimpleGalleryViewProps = {
-  url: string;
-  onLoad: (event: { nativeEvent: OnLoadEventPayload }) => void;
-  style?: StyleProp<ViewStyle>;
+export type ExpoSimpleGalleryViewProps = ViewProps & {
+  assets: string[];
+  columnsCount?: number;
+  thumbnailsSpacing?: number;
+  thumbnailStyle?: Pick<
+    ViewStyle,
+    'aspectRatio' | 'borderRadius' | 'borderWidth' | 'borderColor'
+  >;
+  thumbnailOverlayComponent?: ThumbnailOverlayComponent;
 };
