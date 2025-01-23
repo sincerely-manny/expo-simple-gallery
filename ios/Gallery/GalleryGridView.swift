@@ -3,7 +3,8 @@ final class GalleryGridView: UICollectionView {
   private var uris: [String] = []
   private var cellHierarchy = [Int: [Int: UIView]]()
   private var visibleOverlays = Set<Int>()
-  private var prefetchIndexPaths: Set<IndexPath> = []
+  private var prefetchIndexPaths = Set<IndexPath>()
+  private let preloadBuffer = 10  // Number of items to preload in each direction
 
   init() {
     let layout = UICollectionViewFlowLayout()
@@ -80,12 +81,21 @@ final class GalleryGridView: UICollectionView {
 
   func setHierarchy(_ hierarchy: [Int: [Int: UIView]]) {
     cellHierarchy = hierarchy
+    updateVisibleAndNearbyOverlays()
+  }
 
-    // Update all visible and prefetched cells
-    let indexPaths = Set(indexPathsForVisibleItems).union(prefetchIndexPaths)
-    for indexPath in indexPaths {
+  private func updateVisibleAndNearbyOverlays() {
+    guard let visibleItems = indexPathsForVisibleItems.first else { return }
+
+    // Calculate range of cells to update
+    let startIndex = max(0, visibleItems.item - preloadBuffer)
+    let endIndex = min(uris.count - 1, visibleItems.item + preloadBuffer)
+
+    // Update cells in range
+    for index in startIndex...endIndex {
+      let indexPath = IndexPath(item: index, section: 0)
       if let cell = cellForItem(at: indexPath) as? GalleryCell {
-        cell.configureOverlay(with: hierarchy[indexPath.item] ?? [:])
+        cell.configureOverlay(with: cellHierarchy[index] ?? [:])
       }
     }
   }
@@ -104,6 +114,13 @@ final class GalleryGridView: UICollectionView {
 extension GalleryGridView: UICollectionViewDataSourcePrefetching {
   func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
     prefetchIndexPaths.formUnion(indexPaths)
+
+    // Try to configure overlays for prefetched cells
+    for indexPath in indexPaths {
+      if let cell = cellForItem(at: indexPath) as? GalleryCell {
+        cell.configureOverlay(with: cellHierarchy[indexPath.item] ?? [:])
+      }
+    }
   }
 
   func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
@@ -112,22 +129,17 @@ extension GalleryGridView: UICollectionViewDataSourcePrefetching {
 }
 
 extension GalleryGridView: UICollectionViewDelegate {
+  func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    updateVisibleAndNearbyOverlays()
+  }
+
   func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-    updateVisibleCells()
+    updateVisibleAndNearbyOverlays()
   }
 
   func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
     if !decelerate {
-      updateVisibleCells()
-    }
-  }
-
-  private func updateVisibleCells() {
-    let visibleIndexPaths = indexPathsForVisibleItems
-    for indexPath in visibleIndexPaths {
-      if let cell = cellForItem(at: indexPath) as? GalleryCell {
-        cell.configureOverlay(with: cellHierarchy[indexPath.item] ?? [:])
-      }
+      updateVisibleAndNearbyOverlays()
     }
   }
 }

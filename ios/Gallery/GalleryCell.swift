@@ -82,49 +82,43 @@ final class GalleryCell: UICollectionViewCell {
   }
 
   func configureOverlay(with viewHierarchy: [Int: UIView]) {
+    // If already configuring, store as pending
     guard !isConfiguring else {
       pendingOverlay = viewHierarchy
       return
     }
 
     isConfiguring = true
-    defer {
-      isConfiguring = false
-      if let pending = pendingOverlay {
-        pendingOverlay = nil
-        configureOverlay(with: pending)
+
+    // Configure immediately instead of waiting for next run loop
+    if let (key, view) = viewHierarchy.first {
+      if currentOverlayKey != key {
+        // Clear existing overlay
+        clearCurrentOverlay()
+
+        // Mount new overlay
+        if view.superview == nil {
+          overlayContainer.mountChildComponentView(view, index: 0)
+          mountedViews[key] = view
+          currentOverlayKey = key
+
+          // Position immediately
+          view.frame = overlayContainer.bounds
+          view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+          // Force immediate layout
+          overlayContainer.setNeedsLayout()
+          overlayContainer.layoutIfNeeded()
+        }
       }
     }
 
-    // If the same view is already mounted correctly, keep it
-    if let currentKey = currentOverlayKey,
-      let currentView = mountedViews[currentKey],
-      currentView.superview === overlayContainer,
-      let newView = viewHierarchy[currentKey],
-      currentView === newView
-    {
-      return
-    }
+    isConfiguring = false
 
-    // Clear existing overlay
-    clearCurrentOverlay()
-
-    // Mount new overlay
-    guard let (key, view) = viewHierarchy.first else { return }
-
-    // Only mount if view isn't mounted elsewhere
-    if view.superview == nil {
-      overlayContainer.mountChildComponentView(view, index: 0)
-      mountedViews[key] = view
-      currentOverlayKey = key
-
-      // Position the view
-      view.frame = overlayContainer.bounds
-      view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-
-      // Force layout
-      overlayContainer.setNeedsLayout()
-      overlayContainer.layoutIfNeeded()
+    // Handle any pending overlay
+    if let pending = pendingOverlay {
+      pendingOverlay = nil
+      configureOverlay(with: pending)
     }
   }
 

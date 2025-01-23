@@ -37,7 +37,9 @@ export default function App() {
               borderWidth: 10,
             }}
           >
-            <Text style={{ fontSize: 32 }}>{index === 6 ? 'six' : index}</Text>
+            <Text style={{ fontSize: 32 }}>
+              {index === 6 ? 'six' : index + 1}
+            </Text>
           </View>
         )}
       >
