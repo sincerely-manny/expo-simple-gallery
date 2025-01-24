@@ -37,7 +37,7 @@ final class ExpoSimpleGalleryView: ExpoView {
     // Clean up mounted views
     for (_, children) in mountedHierarchy {
       for (_, view) in children {
-        if let _ = view.superview as? ExpoView {
+        if view.superview as? ExpoView != nil {
           // Remove from parent without unmounting
           view.removeFromSuperview()
         }
@@ -78,17 +78,17 @@ final class ExpoSimpleGalleryView: ExpoView {
   private func processPendingMounts() {
     guard !pendingMounts.isEmpty else { return }
 
-    // Sort by index to maintain order
-    let sortedMounts = pendingMounts.sorted { $0.index < $1.index }
-    pendingMounts.removeAll()
+    var newHierarchy = [Int: [Int: UIView]]()
 
-    // Process mounts
-    for mount in sortedMounts {
-      // Add to hierarchy
-      mountedHierarchy[mount.index] = [mount.index: mount.view]
+    // Process all pending mounts at once
+    for mount in pendingMounts {
+      newHierarchy[mount.index] = [mount.index: mount.view]
     }
 
-    // Update gallery view
-    galleryView.setHierarchy(mountedHierarchy)
+    pendingMounts.removeAll()
+    mountedHierarchy = newHierarchy
+
+    // Update gallery view immediately
+    galleryView.setHierarchy(newHierarchy)
   }
 }

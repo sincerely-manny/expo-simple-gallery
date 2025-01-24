@@ -5,6 +5,7 @@ final class GalleryGridView: UICollectionView {
   private var visibleOverlays = Set<Int>()
   private var prefetchIndexPaths = Set<IndexPath>()
   private let preloadBuffer = 10  // Number of items to preload in each direction
+  private var mountedOverlays = Set<Int>()  // Track mounted overlays
 
   init() {
     let layout = UICollectionViewFlowLayout()
@@ -81,34 +82,27 @@ final class GalleryGridView: UICollectionView {
 
   func setHierarchy(_ hierarchy: [Int: [Int: UIView]]) {
     cellHierarchy = hierarchy
-    updateVisibleAndNearbyOverlays()
-  }
 
-  private func updateVisibleAndNearbyOverlays() {
-    guard let visibleItems = indexPathsForVisibleItems.first else { return }
+    // Only update cells that aren't already mounted correctly
+    let visiblePaths = indexPathsForVisibleItems
+    let cellsToUpdate = visiblePaths.filter { indexPath in
+      !mountedOverlays.contains(indexPath.item) || cellHierarchy[indexPath.item] != nil
+    }
 
-    // Calculate range of cells to update
-    let startIndex = max(0, visibleItems.item - preloadBuffer)
-    let endIndex = min(uris.count - 1, visibleItems.item + preloadBuffer)
-
-    // Update cells in range
-    for index in startIndex...endIndex {
-      let indexPath = IndexPath(item: index, section: 0)
-      if let cell = cellForItem(at: indexPath) as? GalleryCell {
-        cell.configureOverlay(with: cellHierarchy[index] ?? [:])
-      }
+    if !cellsToUpdate.isEmpty {
+      reloadItems(at: cellsToUpdate)
     }
   }
 
   // Handle cleanup
-  func cleanup() {
-    // Clear all overlays
-    for cell in visibleCells.compactMap({ $0 as? GalleryCell }) {
-      cell.prepareForReuse()
-    }
-    cellHierarchy.removeAll()
-    visibleOverlays.removeAll()
-  }
+//  func cleanup() {
+//    // Clear all overlays
+//    for cell in visibleCells.compactMap({ $0 as? GalleryCell }) {
+//      cell.prepareForReuse()
+//    }
+//    cellHierarchy.removeAll()
+//    visibleOverlays.removeAll()
+//  }
 }
 
 extension GalleryGridView: UICollectionViewDataSourcePrefetching {
@@ -128,22 +122,6 @@ extension GalleryGridView: UICollectionViewDataSourcePrefetching {
   }
 }
 
-extension GalleryGridView: UICollectionViewDelegate {
-  func scrollViewDidScroll(_ scrollView: UIScrollView) {
-    updateVisibleAndNearbyOverlays()
-  }
-
-  func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-    updateVisibleAndNearbyOverlays()
-  }
-
-  func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-    if !decelerate {
-      updateVisibleAndNearbyOverlays()
-    }
-  }
-}
-
 extension GalleryGridView: UICollectionViewDataSource {
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
     return uris.count
@@ -159,17 +137,23 @@ extension GalleryGridView: UICollectionViewDataSource {
       return UICollectionViewCell()
     }
 
-    // Configure cell with URI
     let uri = uris[indexPath.item]
-    cell.configure(with: uri)
+    let overlayHierarchy = cellHierarchy[indexPath.item]
+
+    cell.configure(with: uri, index: indexPath.item, overlayHierarchy: overlayHierarchy)
     cell.setBorderRadius(configuration.borderRadius)
 
-    // Configure overlay if exists
-    if let viewHierarchy = cellHierarchy[indexPath.item] {
-      cell.configureOverlay(with: viewHierarchy)
+    if overlayHierarchy != nil {
+      mountedOverlays.insert(indexPath.item)
     }
 
     return cell
+  }
+
+  func collectionView(
+    _ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath
+  ) {
+    mountedOverlays.remove(indexPath.item)
   }
 }
 

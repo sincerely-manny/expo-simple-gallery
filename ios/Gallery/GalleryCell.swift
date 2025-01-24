@@ -9,7 +9,7 @@ final class GalleryCell: UICollectionViewCell {
   private var mountedViews = [Int: UIView]()
   private var currentOverlayKey: Int?
   private var isConfiguring = false
-  private var pendingOverlay: [Int: UIView]?
+  var cellIndex: Int?
 
   override init(frame: CGRect) {
     imageLoader = ImageLoader()
@@ -67,58 +67,62 @@ final class GalleryCell: UICollectionViewCell {
     contentView.layer.masksToBounds = true
   }
 
-  func configure(with uri: String) {
-    imageLoadTask?.cancel()
+  func configure(with uri: String, index: Int, overlayHierarchy: [Int: UIView]?) {
+    cellIndex = index
 
+    // Configure image
+    imageLoadTask?.cancel()
     guard let url = URL(string: uri) else { return }
     let targetSize = CGSize(
       width: bounds.width * UIScreen.main.scale,
       height: bounds.height * UIScreen.main.scale
     )
-
     imageLoadTask = imageLoader.loadImage(url: url, targetSize: targetSize) { [weak self] image in
       self?.imageView.image = image
     }
+
+    // Configure overlay with safety check
+    if let hierarchy = overlayHierarchy {
+      safeConfigureOverlay(with: hierarchy)
+    }
   }
 
-  func configureOverlay(with viewHierarchy: [Int: UIView]) {
-    // If already configuring, store as pending
-    guard !isConfiguring else {
-      pendingOverlay = viewHierarchy
-      return
-    }
-
-    isConfiguring = true
-
-    // Configure immediately instead of waiting for next run loop
+  private func safeConfigureOverlay(with viewHierarchy: [Int: UIView]) {
+    // Check if we already have this view mounted
     if let (key, view) = viewHierarchy.first {
-      if currentOverlayKey != key {
-        // Clear existing overlay
-        clearCurrentOverlay()
+      if currentOverlayKey == key && mountedViews[key] === view {
+        // View is already mounted correctly
+        return
+      }
 
-        // Mount new overlay
-        if view.superview == nil {
-          overlayContainer.mountChildComponentView(view, index: 0)
-          mountedViews[key] = view
-          currentOverlayKey = key
-
-          // Position immediately
-          view.frame = overlayContainer.bounds
-          view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-
-          // Force immediate layout
-          overlayContainer.setNeedsLayout()
-          overlayContainer.layoutIfNeeded()
-        }
+      // Check if view is already mounted somewhere
+      if view.superview != nil {
+        // View is mounted elsewhere, skip mounting
+        return
       }
     }
 
-    isConfiguring = false
+    // Safe to proceed with mounting
+    configureOverlay(with: viewHierarchy)
+  }
 
-    // Handle any pending overlay
-    if let pending = pendingOverlay {
-      pendingOverlay = nil
-      configureOverlay(with: pending)
+  func configureOverlay(with viewHierarchy: [Int: UIView]) {
+    // Clear existing overlay first
+    clearCurrentOverlay()
+
+    // Mount new overlay
+    if let (key, view) = viewHierarchy.first {
+      guard view.superview == nil else { return }
+
+      overlayContainer.mountChildComponentView(view, index: 0)
+      mountedViews[key] = view
+      currentOverlayKey = key
+
+      view.frame = overlayContainer.bounds
+      view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+      overlayContainer.setNeedsLayout()
+      overlayContainer.layoutIfNeeded()
     }
   }
 
@@ -138,7 +142,6 @@ final class GalleryCell: UICollectionViewCell {
     imageView.image = nil
     imageLoadTask?.cancel()
     clearCurrentOverlay()
-    pendingOverlay = nil
-    isConfiguring = false
+    cellIndex = nil
   }
 }
