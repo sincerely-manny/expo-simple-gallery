@@ -17,6 +17,9 @@ public class ExpoSimpleGalleryModule: Module {
       Prop("thumbnailStyle") { (view: ExpoSimpleGalleryView, style: [String: Any]) in
         view.galleryView.setThumbnailStyle(style)
       }
+      Prop("contentContainerStyle") { (view: ExpoSimpleGalleryView, style: [String: Any]) in
+        view.galleryView.setContentContainerStyle(style)
+      }
     }
   }
 }

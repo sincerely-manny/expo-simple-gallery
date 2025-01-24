@@ -1,23 +1,48 @@
 import Photos
 
 final class ImageLoader: ImageLoaderProtocol {
+  private var ongoingTasks: [URL: LoadTask] = [:]
+  private let taskQueue = DispatchQueue(label: "com.imageloader.queue", attributes: .concurrent)
+
   struct LoadTask: Cancellable {
     let workItem: DispatchWorkItem
+    let requestID: UUID
 
     func cancel() {
       workItem.cancel()
     }
   }
 
-  func loadImage(url: URL, targetSize: CGSize, completion: @escaping (UIImage?) -> Void)
-    -> Cancellable
-  {
+  func loadImage(url: URL, targetSize: CGSize, completion: @escaping (UIImage?) -> Void) -> Cancellable {
+    // Cancel any existing task for this URL
+    taskQueue.async(flags: .barrier) {
+      self.ongoingTasks[url]?.cancel()
+      self.ongoingTasks.removeValue(forKey: url)
+    }
+
+    let requestID = UUID()
     let task = DispatchWorkItem { [weak self] in
-      self?.handleImageLoad(url: url, targetSize: targetSize, completion: completion)
+      self?.handleImageLoad(url: url, targetSize: targetSize) { image in
+        self?.taskQueue.async(flags: .barrier) {
+          // Only complete if this is still the active task
+          if self?.ongoingTasks[url]?.requestID == requestID {
+            DispatchQueue.main.async {
+              completion(image)
+            }
+            self?.ongoingTasks.removeValue(forKey: url)
+          }
+        }
+      }
+    }
+
+    let loadTask = LoadTask(workItem: task, requestID: requestID)
+
+    taskQueue.async(flags: .barrier) {
+      self.ongoingTasks[url] = loadTask
     }
 
     DispatchQueue.global(qos: .userInitiated).async(execute: task)
-    return LoadTask(workItem: task)
+    return loadTask
   }
 
   private func handleImageLoad(

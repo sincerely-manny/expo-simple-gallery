@@ -24,9 +24,9 @@ const MemoizedOverlayComponent = memo(
         <OverlayComponent selected={false} uri={uri} index={index} />
       </View>
     );
-  },
-  (prevProps, nextProps) =>
-    prevProps.uri === nextProps.uri && prevProps.index === nextProps.index
+  }
+  // (prevProps, nextProps) =>
+  //   prevProps.uri === nextProps.uri && prevProps.index === nextProps.index
 );
 
 export default function ExpoSimpleGalleryView({
@@ -36,15 +36,15 @@ export default function ExpoSimpleGalleryView({
 }: ExpoSimpleGalleryViewProps) {
   return (
     <NativeView {...props} assets={assets}>
+      {/* @ts-expect-error type of children is intentionally set to never | undefined */}
       {assets.map((uri, index) =>
         OverlayComponent ? (
-          <View
-            style={style.overlay}
-            nativeID="ExpoSimpleGalleryView"
+          <MemoizedOverlayComponent
             key={uri}
-          >
-            <OverlayComponent selected={false} uri={uri} index={index} />
-          </View>
+            OverlayComponent={OverlayComponent}
+            uri={uri}
+            index={index}
+          />
         ) : null
       )}
     </NativeView>

@@ -2,9 +2,7 @@ final class GalleryGridView: UICollectionView {
   private var configuration = GalleryConfiguration()
   private var uris: [String] = []
   private var cellHierarchy = [Int: [Int: UIView]]()
-  private var visibleOverlays = Set<Int>()
   private var prefetchIndexPaths = Set<IndexPath>()
-  private let preloadBuffer = 10  // Number of items to preload in each direction
   private var mountedOverlays = Set<Int>()  // Track mounted overlays
 
   init() {
@@ -27,6 +25,132 @@ final class GalleryGridView: UICollectionView {
     reloadData()
   }
 
+  private func updateLayout(animated: Bool) {
+    if let layout = collectionViewLayout as? UICollectionViewFlowLayout {
+      layout.minimumInteritemSpacing = configuration.spacing
+      layout.minimumLineSpacing = configuration.spacing
+      layout.sectionInset = configuration.padding
+      // Include padding in section insets
+//      if configuration.columns == 1 {
+//        layout.sectionInset = configuration.padding
+//      } else {
+//        layout.sectionInset = UIEdgeInsets(
+//          top: configuration.padding.top,
+//          left: configuration.padding.left,
+//          bottom: configuration.padding.bottom,
+//          right: configuration.padding.right
+//        )
+//      }
+    }
+
+    collectionViewLayout.invalidateLayout()
+
+    if animated {
+      UIView.animate(withDuration: 0.3) {
+        self.layoutIfNeeded()
+      }
+    } else {
+      reloadData()
+    }
+  }
+
+  func setHierarchy(_ hierarchy: [Int: [Int: UIView]]) {
+    cellHierarchy = hierarchy
+
+    // Only update cells that aren't already mounted correctly
+    let visiblePaths = indexPathsForVisibleItems
+    let cellsToUpdate = visiblePaths.filter { indexPath in
+      return !mountedOverlays.contains(indexPath.item) || cellHierarchy[indexPath.item] != nil
+    }
+
+    if !cellsToUpdate.isEmpty {
+      reloadItems(at: cellsToUpdate)
+    }
+  }
+
+}
+
+extension GalleryGridView: UICollectionViewDataSourcePrefetching {
+  func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
+    prefetchIndexPaths.formUnion(indexPaths)
+
+    // Try to configure overlays for prefetched cells
+    for indexPath in indexPaths {
+      if let cell = cellForItem(at: indexPath) as? GalleryCell {
+        cell.configureOverlay(with: cellHierarchy[indexPath.item] ?? [:])
+      }
+    }
+  }
+
+  func collectionView(
+    _ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]
+  ) {
+    prefetchIndexPaths.subtract(indexPaths)
+  }
+}
+
+extension GalleryGridView: UICollectionViewDataSource {
+  func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int)
+    -> Int
+  {
+    return uris.count
+  }
+
+  func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath)
+    -> UICollectionViewCell
+  {
+    guard
+      let cell = collectionView.dequeueReusableCell(
+        withReuseIdentifier: GalleryCell.identifier,
+        for: indexPath
+      ) as? GalleryCell
+    else {
+      return UICollectionViewCell()
+    }
+
+    let uri = uris[indexPath.item]
+    let overlayHierarchy = cellHierarchy[indexPath.item]
+
+    cell.configure(with: uri, index: indexPath.item, overlayHierarchy: overlayHierarchy)
+    cell.setBorderRadius(configuration.borderRadius)
+
+    if overlayHierarchy != nil {
+      mountedOverlays.insert(indexPath.item)
+    }
+
+    return cell
+  }
+
+  func collectionView(
+    _ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell,
+    forItemAt indexPath: IndexPath
+  ) {
+    mountedOverlays.remove(indexPath.item)
+  }
+}
+
+extension GalleryGridView: UICollectionViewDelegateFlowLayout {
+  func collectionView(
+    _ collectionView: UICollectionView,
+    layout collectionViewLayout: UICollectionViewLayout,
+    sizeForItemAt indexPath: IndexPath
+  ) -> CGSize {
+    // Account for padding in width calculation
+    let horizontalPadding = configuration.padding.left + configuration.padding.right
+    let totalSpacing = CGFloat(max(configuration.columns - 1, 0)) * configuration.spacing
+    let usableWidth = collectionView.bounds.width - totalSpacing - horizontalPadding
+
+    let cellWidth =
+      configuration.columns == 1
+      ? floor(usableWidth)
+      : floor(usableWidth / CGFloat(configuration.columns))
+
+    let cellHeight = floor(cellWidth / configuration.imageAspectRatio)
+    return CGSize(width: cellWidth, height: cellHeight)
+  }
+}
+
+extension GalleryGridView {
   func setColumns(_ count: Int, animated: Bool = true) {
     guard count > 0 else { return }
     configuration.columns = count
@@ -52,129 +176,40 @@ final class GalleryGridView: UICollectionView {
     updateLayout(animated: animated)
   }
 
-  private func updateLayout(animated: Bool) {
-    if let layout = collectionViewLayout as? UICollectionViewFlowLayout {
-      layout.minimumInteritemSpacing = configuration.spacing
-      layout.minimumLineSpacing = configuration.spacing
-
-      if configuration.columns == 1 {
-        layout.sectionInset = .zero
-      } else {
-        layout.sectionInset = UIEdgeInsets(
-          top: configuration.spacing,
-          left: 0,
-          bottom: configuration.spacing,
-          right: 0
-        )
-      }
+  func setContentContainerStyle(_ style: [String: Any], animated: Bool = true) {
+    var insets = UIEdgeInsets.zero
+    if let all = style["padding"] as? Double {
+      insets = UIEdgeInsets(
+        top: CGFloat(all),
+        left: CGFloat(all),
+        bottom: CGFloat(all),
+        right: CGFloat(all)
+      )
+    }
+    if let vertical = style["paddingVertical"] as? Double {
+      insets.top = CGFloat(vertical)
+      insets.bottom = CGFloat(vertical)
+    }
+    if let horizontal = style["paddingHorizontal"] as? Double {
+      insets.left = CGFloat(horizontal)
+      insets.right = CGFloat(horizontal)
     }
 
-    collectionViewLayout.invalidateLayout()
-
-    if animated {
-      UIView.animate(withDuration: 0.3) {
-        self.layoutIfNeeded()
-      }
-    } else {
-      reloadData()
+    if let top = style["paddingTop"] as? Double {
+      insets.top = CGFloat(top)
     }
-  }
-
-  func setHierarchy(_ hierarchy: [Int: [Int: UIView]]) {
-//    print("### Setting hierarchy for indices:", hierarchy.keys.sorted())
-    cellHierarchy = hierarchy
-
-    // Log visible cells
-    let visibleIndices = indexPathsForVisibleItems.map { $0.item }
-//    print("### Currently visible cells:", visibleIndices)
-
-    // Check if we have overlays for visible cells
-    for index in visibleIndices {
-//      print("### Overlay for cell \(index) exists:", hierarchy[index] != nil)
+    if let left = style["paddingLeft"] as? Double {
+      insets.left = CGFloat(left)
+    }
+    if let bottom = style["paddingBottom"] as? Double {
+      insets.bottom = CGFloat(bottom)
+    }
+    if let right = style["paddingRight"] as? Double {
+      insets.right = CGFloat(right)
     }
 
-    // Only update cells that aren't already mounted correctly
-    let visiblePaths = indexPathsForVisibleItems
-    let cellsToUpdate = visiblePaths.filter { indexPath in
-//      print("### Configuring cell at index:", indexPath.item)
-      return !mountedOverlays.contains(indexPath.item) || cellHierarchy[indexPath.item] != nil
-    }
-
-    if !cellsToUpdate.isEmpty {
-      reloadItems(at: cellsToUpdate)
-    }
-  }
-
-}
-
-extension GalleryGridView: UICollectionViewDataSourcePrefetching {
-  func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
-    prefetchIndexPaths.formUnion(indexPaths)
-
-    // Try to configure overlays for prefetched cells
-    for indexPath in indexPaths {
-      if let cell = cellForItem(at: indexPath) as? GalleryCell {
-        cell.configureOverlay(with: cellHierarchy[indexPath.item] ?? [:])
-      }
-    }
-  }
-
-  func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
-    prefetchIndexPaths.subtract(indexPaths)
-  }
-}
-
-extension GalleryGridView: UICollectionViewDataSource {
-  func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    return uris.count
-  }
-
-  func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-    guard
-      let cell = collectionView.dequeueReusableCell(
-        withReuseIdentifier: GalleryCell.identifier,
-        for: indexPath
-      ) as? GalleryCell
-    else {
-      return UICollectionViewCell()
-    }
-
-    let uri = uris[indexPath.item]
-    let overlayHierarchy = cellHierarchy[indexPath.item]
-
-    cell.configure(with: uri, index: indexPath.item, overlayHierarchy: overlayHierarchy)
-    cell.setBorderRadius(configuration.borderRadius)
-
-    if overlayHierarchy != nil {
-      mountedOverlays.insert(indexPath.item)
-    }
-
-    return cell
-  }
-
-  func collectionView(
-    _ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath
-  ) {
-    mountedOverlays.remove(indexPath.item)
-  }
-}
-
-extension GalleryGridView: UICollectionViewDelegateFlowLayout {
-  func collectionView(
-    _ collectionView: UICollectionView,
-    layout collectionViewLayout: UICollectionViewLayout,
-    sizeForItemAt indexPath: IndexPath
-  ) -> CGSize {
-    let totalSpacing = CGFloat(max(configuration.columns - 1, 0)) * configuration.spacing
-    let usableWidth = collectionView.bounds.width - totalSpacing
-
-    let cellWidth =
-      configuration.columns == 1
-      ? floor(collectionView.bounds.width)
-      : floor(usableWidth / CGFloat(configuration.columns))
-
-    let cellHeight = floor(cellWidth / configuration.imageAspectRatio)
-    return CGSize(width: cellWidth, height: cellHeight)
+    configuration.padding = insets
+    updateLayout(animated: animated)
   }
 }
 
@@ -184,4 +219,5 @@ struct GalleryConfiguration {
   var spacing: CGFloat = 0
   var imageAspectRatio: CGFloat = 1
   var borderRadius: CGFloat = 0
+  var padding: UIEdgeInsets = .zero
 }

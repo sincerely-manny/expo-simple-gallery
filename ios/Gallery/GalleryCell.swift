@@ -10,6 +10,8 @@ final class GalleryCell: UICollectionViewCell {
   private var currentOverlayKey: Int?
   private var isConfiguring = false
   var cellIndex: Int?
+  private var currentImageURL: URL?
+  private var placeholderView: UIView?
 
   override init(frame: CGRect) {
     imageLoader = ImageLoader()
@@ -35,14 +37,6 @@ final class GalleryCell: UICollectionViewCell {
     overlayContainer.isUserInteractionEnabled = true
     overlayContainer.isOpaque = true
 
-    // Force a specific size if needed
-    //    overlayContainer.layer.zPosition = 999  // Ensure it's above other views
-
-    // Debug: Add border to see bounds
-    //    overlayContainer.layer.borderWidth = 2
-    //    overlayContainer.layer.borderColor = UIColor.yellow.cgColor
-    //    overlayContainer.layer.backgroundColor = UIColor.red.withAlphaComponent(0.5).cgColor
-
     NSLayoutConstraint.activate([
       imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
       imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -62,85 +56,100 @@ final class GalleryCell: UICollectionViewCell {
   }
 
   func configure(with uri: String, index: Int, overlayHierarchy: [Int: UIView]?) {
-    print("### Cell \(index): Starting configuration")
     cellIndex = index
 
-    // Configure image
+    // Clear current image and show placeholder
+    imageView.image = nil
+    showPlaceholder()
+
+    // Cancel any pending image load
     imageLoadTask?.cancel()
+    imageLoadTask = nil
+
+    // Configure new image load
     guard let url = URL(string: uri) else { return }
-    let targetSize = CGSize(
-      width: bounds.width * UIScreen.main.scale,
-      height: bounds.height * UIScreen.main.scale
-    )
-    imageLoadTask = imageLoader.loadImage(url: url, targetSize: targetSize) { [weak self] image in
-      print("### Cell \(index): Image loaded")
-      self?.imageView.image = image
+
+    // Only load if URL changed
+    if currentImageURL != url {
+      currentImageURL = url
+      let targetSize = CGSize(
+        width: bounds.width * UIScreen.main.scale,
+        height: bounds.height * UIScreen.main.scale
+      )
+
+      imageLoadTask = imageLoader.loadImage(url: url, targetSize: targetSize) { [weak self] image in
+        guard let self = self,
+          self.currentImageURL == url
+        else { return }
+
+        self.imageView.image = image
+        self.hidePlaceholder()
+      }
     }
 
-    // Configure overlay with safety check
+    // Configure overlay
     if let hierarchy = overlayHierarchy {
-      print("### Cell \(index): Overlay hierarchy available with keys:", hierarchy.keys)
       safeConfigureOverlay(with: hierarchy)
-    } else {
-      print("### Cell \(index): No overlay hierarchy provided")
     }
   }
 
-  private func safeConfigureOverlay(with viewHierarchy: [Int: UIView]) {
-    guard let cellIdx = cellIndex else {
-      print("### Cell: Unknown index during safe configure")
-      return
+  private func showPlaceholder() {
+    if placeholderView == nil {
+      let placeholder = UIView()
+      placeholder.backgroundColor = .systemGray6
+      placeholder.translatesAutoresizingMaskIntoConstraints = false
+      contentView.insertSubview(placeholder, belowSubview: overlayContainer)
+
+      NSLayoutConstraint.activate([
+        placeholder.topAnchor.constraint(equalTo: contentView.topAnchor),
+        placeholder.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+        placeholder.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+        placeholder.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+      ])
+
+      placeholderView = placeholder
     }
+    placeholderView?.isHidden = false
+  }
+
+  private func hidePlaceholder() {
+    placeholderView?.isHidden = true
+  }
+
+  private func safeConfigureOverlay(with viewHierarchy: [Int: UIView]) {
+    guard cellIndex != nil else { return }
 
     // Check if we already have this view mounted
     if let (key, view) = viewHierarchy.first {
-      print("### Cell \(cellIdx): Checking view with key \(key)")
-
-      if currentOverlayKey == key && mountedViews[key] === view {
-        print("### Cell \(cellIdx): View already correctly mounted in this cell")
-        return
-      }
+      if currentOverlayKey == key && mountedViews[key] === view { return }
 
       // Only skip if the view is mounted in ANOTHER cell's overlay container
       if let currentSuperview = view.superview as? ExpoView,
         currentSuperview !== overlayContainer
       {
-        print("### Cell \(cellIdx): View is mounted in another cell, force unmounting")
         // Force unmount from previous container
         if let previousContainer = view.superview as? ExpoView {
           previousContainer.unmountChildComponentView(view, index: 0)
         }
       }
-
-      print("### Cell \(cellIdx): Proceeding with mount")
     }
 
     configureOverlay(with: viewHierarchy)
   }
 
   func configureOverlay(with viewHierarchy: [Int: UIView]) {
-    guard let cellIdx = cellIndex else {
-      print("### Cell: Unknown index during configure")
-      return
-    }
-
-    print("### Cell \(cellIdx): Starting overlay configuration")
-    print("### Cell \(cellIdx): Current overlay key:", currentOverlayKey ?? "none")
+    guard cellIndex != nil else { return }
 
     // Clear existing overlay first
     clearCurrentOverlay()
 
     // Mount new overlay
     if let (key, view) = viewHierarchy.first {
-      print("### Cell \(cellIdx): Attempting to mount view with key \(key)")
-
       // Remove from previous superview if needed
       if let previousSuperview = view.superview as? ExpoView {
-        print("### Cell \(cellIdx): Removing view from previous container")
         previousSuperview.unmountChildComponentView(view, index: 0)
       }
 
-      print("### Cell \(cellIdx): Mounting view")
       overlayContainer.mountChildComponentView(view, index: 0)
       mountedViews[key] = view
       currentOverlayKey = key
@@ -150,42 +159,39 @@ final class GalleryCell: UICollectionViewCell {
 
       overlayContainer.setNeedsLayout()
       overlayContainer.layoutIfNeeded()
-      print("### Cell \(cellIdx): Overlay mounted and positioned")
     }
   }
 
   private func clearCurrentOverlay() {
-    guard let cellIdx = cellIndex else {
-      print("### Cell: Unknown index during clear")
-      return
-    }
+    guard cellIndex != nil else { return }
 
-    print("### Cell \(cellIdx): Clearing current overlay")
-    if let currentKey = currentOverlayKey {
-      print("### Cell \(cellIdx): Found current key:", currentKey)
-      if let view = mountedViews[currentKey] {
-        if view.superview === overlayContainer {
-          print("### Cell \(cellIdx): Unmounting view")
-          overlayContainer.unmountChildComponentView(view, index: 0)
-        } else {
-          print("### Cell \(cellIdx): View not in overlay container")
-        }
-      } else {
-        print("### Cell \(cellIdx): No view found for key")
-      }
-    } else {
-      print("### Cell \(cellIdx): No current key to clear")
+    if let currentKey = currentOverlayKey,
+      let view = mountedViews[currentKey],
+      view.superview === overlayContainer
+    {
+      overlayContainer.unmountChildComponentView(view, index: 0)
     }
     mountedViews.removeAll()
     currentOverlayKey = nil
   }
 
   override func prepareForReuse() {
-    print("### Cell \(cellIndex ?? -1): Preparing for reuse")
     super.prepareForReuse()
     imageView.image = nil
+    currentImageURL = nil
     imageLoadTask?.cancel()
+    imageLoadTask = nil
+    showPlaceholder()
     clearCurrentOverlay()
     cellIndex = nil
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    // Ensure proper z-index ordering
+    if let placeholder = placeholderView {
+      contentView.sendSubviewToBack(placeholder)
+    }
+    contentView.sendSubviewToBack(imageView)
   }
 }

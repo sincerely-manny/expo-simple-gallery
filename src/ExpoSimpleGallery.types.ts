@@ -20,4 +20,15 @@ export type ExpoSimpleGalleryViewProps = ViewProps & {
     'aspectRatio' | 'borderRadius' | 'borderWidth' | 'borderColor'
   >;
   thumbnailOverlayComponent?: ThumbnailOverlayComponent;
+  contentContainerStyle?: Pick<
+    ViewStyle,
+    | 'padding'
+    | 'paddingHorizontal'
+    | 'paddingVertical'
+    | 'paddingTop'
+    | 'paddingBottom'
+    | 'paddingLeft'
+    | 'paddingRight'
+  >;
+  children?: never;
 };
