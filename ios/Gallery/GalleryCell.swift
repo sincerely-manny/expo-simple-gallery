@@ -3,7 +3,7 @@ import ExpoModulesCore
 final class GalleryCell: UICollectionViewCell {
   static let identifier = "GalleryCell"
   private let imageView = UIImageView()
-  private let overlayContainer: ExpoView
+  private let overlayContainer: OverlayContainerView
   private var imageLoadTask: Cancellable?
   private var imageLoader: ImageLoaderProtocol
   private var mountedViews = [Int: UIView]()
@@ -15,7 +15,7 @@ final class GalleryCell: UICollectionViewCell {
 
   override init(frame: CGRect) {
     imageLoader = ImageLoader()
-    overlayContainer = ExpoView(appContext: nil)
+    overlayContainer = OverlayContainerView(frame: frame)
     super.init(frame: frame)
     setupView()
   }
@@ -34,19 +34,20 @@ final class GalleryCell: UICollectionViewCell {
     // Setup overlayContainer
     contentView.addSubview(overlayContainer)
     overlayContainer.translatesAutoresizingMaskIntoConstraints = false
-    overlayContainer.isUserInteractionEnabled = true
-    overlayContainer.isOpaque = true
+    //    overlayContainer.isUserInteractionEnabled = true
+    //    overlayContainer.isOpaque = true
+    //    overlayContainer.layer.backgroundColor = UIColor.cyan.cgColor
+    //    overlayContainer.layer.borderWidth = 3
+    //    overlayContainer.layer.borderColor = UIColor.yellow.cgColor
+    overlayContainer.clipsToBounds = true
+    overlayContainer.frame = bounds
+    overlayContainer.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
     NSLayoutConstraint.activate([
       imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
       imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
       imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
       imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-
-      overlayContainer.topAnchor.constraint(equalTo: contentView.topAnchor),
-      overlayContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-      overlayContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-      overlayContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
     ])
   }
 
@@ -135,12 +136,9 @@ final class GalleryCell: UICollectionViewCell {
   func configureOverlay(with viewHierarchy: [Int: UIView]) {
     guard cellIndex != nil else { return }
 
-    // Clear existing overlay first
     clearCurrentOverlay()
 
-    // Mount new overlay
     if let (key, view) = viewHierarchy.first {
-      // Remove from previous superview if needed
       if let previousSuperview = view.superview as? ExpoView {
         previousSuperview.unmountChildComponentView(view, index: 0)
       }
@@ -149,11 +147,8 @@ final class GalleryCell: UICollectionViewCell {
       mountedViews[key] = view
       currentOverlayKey = key
 
-      view.frame = overlayContainer.bounds
-      view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-
-      overlayContainer.setNeedsLayout()
-      overlayContainer.layoutIfNeeded()
+      view.setNeedsLayout()
+      view.layoutIfNeeded()
     }
   }
 
@@ -183,11 +178,15 @@ final class GalleryCell: UICollectionViewCell {
 
   override func layoutSubviews() {
     super.layoutSubviews()
-    // Ensure proper z-index ordering
-    if let placeholder = placeholderView {
-      contentView.sendSubviewToBack(placeholder)
+    print("Cell layoutSubviews - Container:", overlayContainer.bounds.size)
+
+    if let currentKey = currentOverlayKey,
+      let view = mountedViews[currentKey]
+    {
+      print("Cell layoutSubviews - View before:", view.frame.size)
+      view.frame = overlayContainer.bounds
+      print("Cell layoutSubviews - View after:", view.frame.size)
     }
-    contentView.sendSubviewToBack(imageView)
   }
 }
 
@@ -201,5 +200,22 @@ extension GalleryCell {
   }
   func setBorderColor(_ color: UIColor?) {
     contentView.layer.borderColor = color?.cgColor ?? nil
+  }
+}
+
+class OverlayContainerView: ExpoView {
+  override func reactSetFrame(_ frame: CGRect) {
+    print("reactSetFrame called with:", frame.size)
+    super.reactSetFrame(frame)
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    print("OverlayContainer layoutSubviews:", bounds.size)
+
+    // Force child views to match bounds
+    for view in subviews {
+      view.frame = bounds
+    }
   }
 }

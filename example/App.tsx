@@ -1,7 +1,27 @@
 import { type Asset, getAssetsAsync, MediaType } from 'expo-media-library';
 import { ExpoSimpleGalleryView } from 'expo-simple-gallery';
 import { useEffect, useState } from 'react';
-import { SafeAreaView, StyleSheet, Text } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+
+type CheckboxProps = {
+  checked: boolean;
+};
+function Checkbox({ checked }: CheckboxProps) {
+  return (
+    <View
+      style={{
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: 'black',
+        backgroundColor: checked ? 'blue' : 'transparent',
+        alignSelf: 'flex-end',
+        margin: 10,
+      }}
+    />
+  );
+}
 
 export default function App() {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -32,17 +52,7 @@ export default function App() {
         assets={assets.map(({ uri }) => uri)}
         style={styles.view}
         thumbnailOverlayComponent={({ selected, uri, index }) => (
-          <Text style={{ fontSize: 32 }}>{index === 6 ? 'six' : index}</Text>
-          // <View
-          //   style={{
-          //     backgroundColor: 'green',
-          //     opacity: 0.3,
-          //     // borderWidth: 10,
-          //     flex: 1,
-          //     padding: 20,
-          //   }}
-          // >
-          // </View>
+          <Checkbox checked={selected} />
         )}
         contentContainerStyle={{
           padding: 20,
