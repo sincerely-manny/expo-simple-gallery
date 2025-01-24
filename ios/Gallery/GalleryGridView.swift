@@ -81,12 +81,23 @@ final class GalleryGridView: UICollectionView {
   }
 
   func setHierarchy(_ hierarchy: [Int: [Int: UIView]]) {
+//    print("### Setting hierarchy for indices:", hierarchy.keys.sorted())
     cellHierarchy = hierarchy
+
+    // Log visible cells
+    let visibleIndices = indexPathsForVisibleItems.map { $0.item }
+//    print("### Currently visible cells:", visibleIndices)
+
+    // Check if we have overlays for visible cells
+    for index in visibleIndices {
+//      print("### Overlay for cell \(index) exists:", hierarchy[index] != nil)
+    }
 
     // Only update cells that aren't already mounted correctly
     let visiblePaths = indexPathsForVisibleItems
     let cellsToUpdate = visiblePaths.filter { indexPath in
-      !mountedOverlays.contains(indexPath.item) || cellHierarchy[indexPath.item] != nil
+//      print("### Configuring cell at index:", indexPath.item)
+      return !mountedOverlays.contains(indexPath.item) || cellHierarchy[indexPath.item] != nil
     }
 
     if !cellsToUpdate.isEmpty {
@@ -94,15 +105,6 @@ final class GalleryGridView: UICollectionView {
     }
   }
 
-  // Handle cleanup
-//  func cleanup() {
-//    // Clear all overlays
-//    for cell in visibleCells.compactMap({ $0 as? GalleryCell }) {
-//      cell.prepareForReuse()
-//    }
-//    cellHierarchy.removeAll()
-//    visibleOverlays.removeAll()
-//  }
 }
 
 extension GalleryGridView: UICollectionViewDataSourcePrefetching {
