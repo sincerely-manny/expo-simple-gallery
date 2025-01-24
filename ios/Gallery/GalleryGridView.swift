@@ -157,18 +157,19 @@ extension GalleryGridView {
   }
 
   func setThumbnailStyle(_ style: [String: Any]) {
-    // Handle style properties
-    if let aspectRatio = style["aspectRatio"] as? Double {
+    if let aspectRatio = (style["aspectRatio"] as? Double) ?? Optional(Double(0)) {
       configuration.imageAspectRatio = CGFloat(aspectRatio)
     }
-    if let borderRadius = style["borderRadius"] as? Double {
+    if let borderRadius = style["borderRadius"] as? Double ?? Optional(Double(0)) {
       configuration.borderRadius = CGFloat(borderRadius)
     }
-    if let borderWidth = style["borderWidth"] as? Double {
+    if let borderWidth = style["borderWidth"] as? Double ?? Optional(Double(0)) {
       configuration.borderWidth = CGFloat(borderWidth)
     }
     if let borderColor = style["borderColor"] as? Int {
       configuration.borderColor = RCTConvert.uiColor(borderColor)
+    } else {
+      configuration.borderColor = nil
     }
 
     updateLayout(animated: false)

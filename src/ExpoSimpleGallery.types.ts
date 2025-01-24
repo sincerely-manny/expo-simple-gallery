@@ -11,15 +11,22 @@ export type ThumbnailOverlayComponentProps = {
 export type ThumbnailOverlayComponent =
   ComponentType<ThumbnailOverlayComponentProps>;
 
+export type ThumbnailPressAction = 'select' | 'open' | 'preview' | 'none';
+
 export type ExpoSimpleGalleryViewProps = ViewProps & {
   assets: string[];
   columnsCount?: number;
+
   thumbnailsSpacing?: number;
   thumbnailStyle?: Pick<
     ViewStyle,
     'aspectRatio' | 'borderRadius' | 'borderWidth' | 'borderColor'
   >;
   thumbnailOverlayComponent?: ThumbnailOverlayComponent;
+
+  thumbnailPressAction?: ThumbnailPressAction;
+  thumbnailLongPressAction?: ThumbnailPressAction;
+
   contentContainerStyle?: Pick<
     ViewStyle,
     | 'padding'
@@ -30,5 +37,6 @@ export type ExpoSimpleGalleryViewProps = ViewProps & {
     | 'paddingLeft'
     | 'paddingRight'
   >;
+
   children?: never;
 };

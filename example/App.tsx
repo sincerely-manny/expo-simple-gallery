@@ -1,7 +1,7 @@
 import { type Asset, getAssetsAsync, MediaType } from 'expo-media-library';
 import { ExpoSimpleGalleryView } from 'expo-simple-gallery';
 import { useEffect, useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, StyleSheet, Text } from 'react-native';
 
 export default function App() {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -25,24 +25,24 @@ export default function App() {
         thumbnailsSpacing={20}
         thumbnailStyle={{
           borderRadius: 20,
-          borderWidth: 4,
-          borderColor: 'teal',
-          aspectRatio: 1,
+          // borderWidth: 4,
+          // borderColor: 'teal',
+          aspectRatio: 4 / 3,
         }}
         assets={assets.map(({ uri }) => uri)}
         style={styles.view}
         thumbnailOverlayComponent={({ selected, uri, index }) => (
-          <View
-            style={{
-              backgroundColor: 'green',
-              opacity: 0.3,
-              // borderWidth: 10,
-              flex: 1,
-              padding: 20,
-            }}
-          >
-            <Text style={{ fontSize: 32 }}>{index === 6 ? 'six' : index}</Text>
-          </View>
+          <Text style={{ fontSize: 32 }}>{index === 6 ? 'six' : index}</Text>
+          // <View
+          //   style={{
+          //     backgroundColor: 'green',
+          //     opacity: 0.3,
+          //     // borderWidth: 10,
+          //     flex: 1,
+          //     padding: 20,
+          //   }}
+          // >
+          // </View>
         )}
         contentContainerStyle={{
           padding: 20,
