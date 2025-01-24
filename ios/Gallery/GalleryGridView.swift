@@ -1,3 +1,5 @@
+import React
+
 final class GalleryGridView: UICollectionView {
   private var configuration = GalleryConfiguration()
   private var uris: [String] = []
@@ -30,17 +32,6 @@ final class GalleryGridView: UICollectionView {
       layout.minimumInteritemSpacing = configuration.spacing
       layout.minimumLineSpacing = configuration.spacing
       layout.sectionInset = configuration.padding
-      // Include padding in section insets
-//      if configuration.columns == 1 {
-//        layout.sectionInset = configuration.padding
-//      } else {
-//        layout.sectionInset = UIEdgeInsets(
-//          top: configuration.padding.top,
-//          left: configuration.padding.left,
-//          bottom: configuration.padding.bottom,
-//          right: configuration.padding.right
-//        )
-//      }
     }
 
     collectionViewLayout.invalidateLayout()
@@ -113,6 +104,8 @@ extension GalleryGridView: UICollectionViewDataSource {
 
     cell.configure(with: uri, index: indexPath.item, overlayHierarchy: overlayHierarchy)
     cell.setBorderRadius(configuration.borderRadius)
+    cell.setBorderWidth(configuration.borderWidth)
+    cell.setBorderColor(configuration.borderColor)
 
     if overlayHierarchy != nil {
       mountedOverlays.insert(indexPath.item)
@@ -163,7 +156,7 @@ extension GalleryGridView {
     updateLayout(animated: animated)
   }
 
-  func setThumbnailStyle(_ style: [String: Any], animated: Bool = true) {
+  func setThumbnailStyle(_ style: [String: Any]) {
     // Handle style properties
     if let aspectRatio = style["aspectRatio"] as? Double {
       configuration.imageAspectRatio = CGFloat(aspectRatio)
@@ -171,9 +164,14 @@ extension GalleryGridView {
     if let borderRadius = style["borderRadius"] as? Double {
       configuration.borderRadius = CGFloat(borderRadius)
     }
-    // Add more style properties as needed
+    if let borderWidth = style["borderWidth"] as? Double {
+      configuration.borderWidth = CGFloat(borderWidth)
+    }
+    if let borderColor = style["borderColor"] as? Int {
+      configuration.borderColor = RCTConvert.uiColor(borderColor)
+    }
 
-    updateLayout(animated: animated)
+    updateLayout(animated: false)
   }
 
   func setContentContainerStyle(_ style: [String: Any], animated: Bool = true) {
@@ -217,7 +215,11 @@ extension GalleryGridView {
 struct GalleryConfiguration {
   var columns: Int = 3
   var spacing: CGFloat = 0
+
   var imageAspectRatio: CGFloat = 1
   var borderRadius: CGFloat = 0
+  var borderWidth: CGFloat = 0
+  var borderColor: UIColor? = nil
+
   var padding: UIEdgeInsets = .zero
 }

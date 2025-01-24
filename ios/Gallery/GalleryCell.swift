@@ -50,11 +50,6 @@ final class GalleryCell: UICollectionViewCell {
     ])
   }
 
-  func setBorderRadius(_ radius: CGFloat) {
-    contentView.layer.cornerRadius = radius
-    contentView.layer.masksToBounds = true
-  }
-
   func configure(with uri: String, index: Int, overlayHierarchy: [Int: UIView]?) {
     cellIndex = index
 
@@ -193,5 +188,18 @@ final class GalleryCell: UICollectionViewCell {
       contentView.sendSubviewToBack(placeholder)
     }
     contentView.sendSubviewToBack(imageView)
+  }
+}
+
+extension GalleryCell {
+  func setBorderRadius(_ radius: CGFloat) {
+    contentView.layer.cornerRadius = radius
+    contentView.layer.masksToBounds = true
+  }
+  func setBorderWidth(_ width: CGFloat) {
+    contentView.layer.borderWidth = width
+  }
+  func setBorderColor(_ color: UIColor?) {
+    contentView.layer.borderColor = color?.cgColor ?? nil
   }
 }

@@ -1,6 +1,6 @@
 import { requireNativeView } from 'expo';
-import { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { memo, useMemo } from 'react';
+import { type ColorValue, StyleSheet, View, processColor } from 'react-native';
 import type {
   ExpoSimpleGalleryViewProps,
   ThumbnailOverlayComponent,
@@ -32,10 +32,24 @@ const MemoizedOverlayComponent = memo(
 export default function ExpoSimpleGalleryView({
   thumbnailOverlayComponent: OverlayComponent,
   assets,
+  thumbnailStyle,
   ...props
 }: ExpoSimpleGalleryViewProps) {
+  const thumbnailStyleProcessed = useMemo(() => {
+    // return thumbnailStyle;
+    if (!thumbnailStyle?.borderColor) return thumbnailStyle;
+    const { borderColor } = thumbnailStyle;
+    return {
+      ...thumbnailStyle,
+      borderColor: (processColor(borderColor) as ColorValue) ?? undefined,
+    };
+  }, [thumbnailStyle]);
   return (
-    <NativeView {...props} assets={assets}>
+    <NativeView
+      {...props}
+      thumbnailStyle={thumbnailStyleProcessed}
+      assets={assets}
+    >
       {/* @ts-expect-error type of children is intentionally set to never | undefined */}
       {assets.map((uri, index) =>
         OverlayComponent ? (

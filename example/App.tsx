@@ -26,7 +26,7 @@ export default function App() {
         thumbnailStyle={{
           borderRadius: 20,
           borderWidth: 4,
-          borderColor: '#FF0000',
+          borderColor: 'teal',
           aspectRatio: 1,
         }}
         assets={assets.map(({ uri }) => uri)}
@@ -73,6 +73,5 @@ const styles = StyleSheet.create({
   },
   view: {
     flex: 1,
-    borderWidth: 1,
   },
 });
