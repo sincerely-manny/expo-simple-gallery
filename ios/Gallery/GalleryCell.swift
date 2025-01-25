@@ -11,6 +11,7 @@ final class GalleryCell: UICollectionViewCell {
   private var isConfiguring = false
   var cellIndex: Int?
   var cellUri: String?
+  var overlayId: Int?
   private var currentImageURL: URL?
   private var placeholderView: UIView?
   private var lastCalculatedSize: CGSize?
@@ -56,6 +57,8 @@ final class GalleryCell: UICollectionViewCell {
   func configure(with uri: String, index: Int, overlayHierarchy: [Int: UIView]?) {
     cellIndex = index
     cellUri = uri
+    overlayId = index
+
 
     guard let url = URL(string: uri) else { return }
     currentImageURL = url
