@@ -3,7 +3,7 @@ import ExpoModulesCore
 final class GalleryCell: UICollectionViewCell {
   static let identifier = "GalleryCell"
   private let imageView = UIImageView()
-  private let overlayContainer: OverlayContainerView
+  private let overlayContainer: ExpoView
   private var imageLoadTask: Cancellable?
   private var imageLoader: ImageLoaderProtocol
   private var mountedViews = [Int: UIView]()
@@ -13,9 +13,12 @@ final class GalleryCell: UICollectionViewCell {
   private var currentImageURL: URL?
   private var placeholderView: UIView?
 
+  private var thumbnailPressAction: ThumbnailPressAction = .open
+  private var thumbnailLongPressAction: ThumbnailPressAction = .select
+
   override init(frame: CGRect) {
     imageLoader = ImageLoader()
-    overlayContainer = OverlayContainerView(frame: frame)
+    overlayContainer = ExpoView(frame: frame)
     super.init(frame: frame)
     setupView()
   }
@@ -34,11 +37,6 @@ final class GalleryCell: UICollectionViewCell {
     // Setup overlayContainer
     contentView.addSubview(overlayContainer)
     overlayContainer.translatesAutoresizingMaskIntoConstraints = false
-    //    overlayContainer.isUserInteractionEnabled = true
-    //    overlayContainer.isOpaque = true
-    //    overlayContainer.layer.backgroundColor = UIColor.cyan.cgColor
-    //    overlayContainer.layer.borderWidth = 3
-    //    overlayContainer.layer.borderColor = UIColor.yellow.cgColor
     overlayContainer.clipsToBounds = true
     overlayContainer.frame = bounds
     overlayContainer.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -54,15 +52,12 @@ final class GalleryCell: UICollectionViewCell {
   func configure(with uri: String, index: Int, overlayHierarchy: [Int: UIView]?) {
     cellIndex = index
 
-    // Clear current image and show placeholder
     imageView.image = nil
     showPlaceholder()
 
-    // Cancel any pending image load
     imageLoadTask?.cancel()
     imageLoadTask = nil
 
-    // Configure new image load
     guard let url = URL(string: uri) else { return }
 
     // Only load if URL changed
@@ -83,7 +78,6 @@ final class GalleryCell: UICollectionViewCell {
       }
     }
 
-    // Configure overlay
     if let hierarchy = overlayHierarchy {
       safeConfigureOverlay(with: hierarchy)
     }
@@ -178,44 +172,20 @@ final class GalleryCell: UICollectionViewCell {
 
   override func layoutSubviews() {
     super.layoutSubviews()
-    print("Cell layoutSubviews - Container:", overlayContainer.bounds.size)
 
     if let currentKey = currentOverlayKey,
       let view = mountedViews[currentKey]
     {
-      print("Cell layoutSubviews - View before:", view.frame.size)
       view.frame = overlayContainer.bounds
-      print("Cell layoutSubviews - View after:", view.frame.size)
     }
   }
 }
 
 extension GalleryCell {
-  func setBorderRadius(_ radius: CGFloat) {
-    contentView.layer.cornerRadius = radius
+  func applyStyle(configuration: GalleryConfiguration) {
+    contentView.layer.cornerRadius = configuration.borderRadius
     contentView.layer.masksToBounds = true
-  }
-  func setBorderWidth(_ width: CGFloat) {
-    contentView.layer.borderWidth = width
-  }
-  func setBorderColor(_ color: UIColor?) {
-    contentView.layer.borderColor = color?.cgColor ?? nil
-  }
-}
-
-class OverlayContainerView: ExpoView {
-  override func reactSetFrame(_ frame: CGRect) {
-    print("reactSetFrame called with:", frame.size)
-    super.reactSetFrame(frame)
-  }
-
-  override func layoutSubviews() {
-    super.layoutSubviews()
-    print("OverlayContainer layoutSubviews:", bounds.size)
-
-    // Force child views to match bounds
-    for view in subviews {
-      view.frame = bounds
-    }
+    contentView.layer.borderWidth = configuration.borderWidth
+    contentView.layer.borderColor = configuration.borderColor?.cgColor ?? nil
   }
 }

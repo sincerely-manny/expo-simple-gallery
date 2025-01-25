@@ -20,6 +20,13 @@ public class ExpoSimpleGalleryModule: Module {
       Prop("contentContainerStyle") { (view: ExpoSimpleGalleryView, style: [String: Any]) in
         view.galleryView.setContentContainerStyle(style)
       }
+      Prop("onThumbnailPress") { (view: ExpoSimpleGalleryView, action: String) in
+        view.galleryView.setThumbnailPressAction(action)
+      }
+      Prop("onThumbnailLongPress") { (view: ExpoSimpleGalleryView, action: String) in
+        view.galleryView.setThumbnailLongPressAction(action)
+      }
+
     }
   }
 }

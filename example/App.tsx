@@ -15,7 +15,7 @@ function Checkbox({ checked }: CheckboxProps) {
         borderRadius: 10,
         borderWidth: 2,
         borderColor: 'black',
-        backgroundColor: checked ? 'blue' : 'transparent',
+        backgroundColor: checked ? 'blue' : 'white',
         alignSelf: 'flex-end',
         margin: 10,
       }}
@@ -47,7 +47,7 @@ export default function App() {
           borderRadius: 20,
           // borderWidth: 4,
           // borderColor: 'teal',
-          aspectRatio: 4 / 3,
+          aspectRatio: 1,
         }}
         assets={assets.map(({ uri }) => uri)}
         style={styles.view}
