@@ -60,21 +60,38 @@ final class ImageLoader: ImageLoaderProtocol {
   }
 
   private func handleFileImage(
-    url: URL, targetSize: CGSize, completion: @escaping (UIImage?) -> Void
+    url: URL,
+    targetSize: CGSize,
+    completion: @escaping (UIImage?) -> Void
   ) {
     guard let originalImage = UIImage(contentsOfFile: url.path) else {
       completion(nil)
       return
     }
 
-    let resizedImage = ImageResizer.resize(image: originalImage, to: targetSize)
-    DispatchQueue.main.async {
-      completion(resizedImage)
+    // Calculate proper size including scale
+    let scale = UIScreen.main.scale
+    let scaledSize = CGSize(
+      width: targetSize.width * scale,
+      height: targetSize.height * scale
+    )
+
+    DispatchQueue.global(qos: .userInitiated).async {
+      let resizedImage = ImageResizer.resize(
+        image: originalImage,
+        to: scaledSize
+      )
+
+      DispatchQueue.main.async {
+        completion(resizedImage)
+      }
     }
   }
 
   private func handlePhotoLibraryImage(
-    url: URL, targetSize: CGSize, completion: @escaping (UIImage?) -> Void
+    url: URL,
+    targetSize: CGSize,
+    completion: @escaping (UIImage?) -> Void
   ) {
     let assetID = url.absoluteString.replacingOccurrences(of: "ph://", with: "")
     guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil).firstObject
@@ -86,13 +103,33 @@ final class ImageLoader: ImageLoaderProtocol {
     let options = PHImageRequestOptions()
     options.resizeMode = .fast
     options.deliveryMode = .opportunistic
+    options.isNetworkAccessAllowed = true
+    options.isSynchronous = false
+    
+    if #available(iOS 17, *) {
+      options.allowSecondaryDegradedImage = true
+    }
+
+    // Request a slightly larger size to ensure quality
+    let scale = UIScreen.main.scale
+    let scaledSize = CGSize(
+      width: targetSize.width * scale,
+      height: targetSize.height * scale
+    )
 
     PHImageManager.default().requestImage(
       for: asset,
-      targetSize: targetSize,
+      targetSize: scaledSize,
       contentMode: .aspectFill,
       options: options
-    ) { image, _ in
+    ) { image, info in
+      // Only deliver final image, not degraded ones
+      if let isDegraded = info?[PHImageResultIsDegradedKey] as? Bool,
+        isDegraded
+      {
+        return
+      }
+
       DispatchQueue.main.async {
         completion(image)
       }

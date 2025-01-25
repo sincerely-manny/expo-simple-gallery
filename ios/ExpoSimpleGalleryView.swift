@@ -14,6 +14,25 @@ final class ExpoSimpleGalleryView: ExpoView {
     galleryView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
   }
 
+  deinit {
+    cleanup()
+  }
+
+  private func cleanup() {
+    pendingMounts.removeAll()
+
+    for (_, children) in mountedHierarchy {
+      for (_, view) in children {
+        if view.superview as? ExpoView != nil {
+          view.removeFromSuperview()
+        }
+      }
+    }
+    mountedHierarchy.removeAll()
+
+    galleryView.setHierarchy([:])
+  }
+
   private func processPendingMounts() {
     guard !pendingMounts.isEmpty else { return }
 

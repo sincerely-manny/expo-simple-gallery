@@ -12,6 +12,7 @@ final class GalleryCell: UICollectionViewCell {
   var cellIndex: Int?
   private var currentImageURL: URL?
   private var placeholderView: UIView?
+  private var lastCalculatedSize: CGSize?
 
   private var thumbnailPressAction: ThumbnailPressAction = .open
   private var thumbnailLongPressAction: ThumbnailPressAction = .select
@@ -59,20 +60,16 @@ final class GalleryCell: UICollectionViewCell {
     imageLoadTask = nil
 
     guard let url = URL(string: uri) else { return }
+    currentImageURL = url
 
-    // Only load if URL changed
-    if currentImageURL != url {
-      currentImageURL = url
-      let targetSize = CGSize(
-        width: bounds.width * UIScreen.main.scale,
-        height: bounds.height * UIScreen.main.scale
-      )
+    let targetSize = CGSize(width: bounds.width, height: bounds.height)
 
-      imageLoadTask = imageLoader.loadImage(url: url, targetSize: targetSize) { [weak self] image in
-        guard let self = self,
-          self.currentImageURL == url
-        else { return }
+    imageLoadTask = imageLoader.loadImage(url: url, targetSize: targetSize) { [weak self] image in
+      guard let self = self,
+        self.currentImageURL == url
+      else { return }
 
+      DispatchQueue.main.async {
         self.imageView.image = image
         self.hidePlaceholder()
       }
@@ -84,26 +81,26 @@ final class GalleryCell: UICollectionViewCell {
   }
 
   private func showPlaceholder() {
-    if placeholderView == nil {
-      let placeholder = UIView()
-      placeholder.backgroundColor = .systemGray6
-      placeholder.translatesAutoresizingMaskIntoConstraints = false
-      contentView.insertSubview(placeholder, belowSubview: overlayContainer)
-
-      NSLayoutConstraint.activate([
-        placeholder.topAnchor.constraint(equalTo: contentView.topAnchor),
-        placeholder.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-        placeholder.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-        placeholder.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-      ])
-
-      placeholderView = placeholder
-    }
-    placeholderView?.isHidden = false
+//    if placeholderView == nil {
+//      let placeholder = UIView()
+//      placeholder.backgroundColor = .systemGray6
+//      placeholder.translatesAutoresizingMaskIntoConstraints = false
+//      contentView.insertSubview(placeholder, belowSubview: overlayContainer)
+//
+//      NSLayoutConstraint.activate([
+//        placeholder.topAnchor.constraint(equalTo: contentView.topAnchor),
+//        placeholder.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+//        placeholder.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+//        placeholder.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+//      ])
+//
+//      placeholderView = placeholder
+//    }
+//    placeholderView?.isHidden = false
   }
 
   private func hidePlaceholder() {
-    placeholderView?.isHidden = true
+//    placeholderView?.isHidden = true
   }
 
   private func safeConfigureOverlay(with viewHierarchy: [Int: UIView]) {
@@ -161,11 +158,12 @@ final class GalleryCell: UICollectionViewCell {
 
   override func prepareForReuse() {
     super.prepareForReuse()
-    imageView.image = nil
+//    imageView.image = nil
     currentImageURL = nil
     imageLoadTask?.cancel()
     imageLoadTask = nil
-    showPlaceholder()
+//    lastCalculatedSize = nil
+//    showPlaceholder()
     clearCurrentOverlay()
     cellIndex = nil
   }
@@ -173,10 +171,36 @@ final class GalleryCell: UICollectionViewCell {
   override func layoutSubviews() {
     super.layoutSubviews()
 
+    // Check if size changed significantly
+    if lastCalculatedSize != bounds.size {
+      lastCalculatedSize = bounds.size
+      // Reload image with new size if needed
+      reloadImageIfNeeded()
+    }
+
+    // Update overlay frame
     if let currentKey = currentOverlayKey,
       let view = mountedViews[currentKey]
     {
       view.frame = overlayContainer.bounds
+    }
+  }
+
+  private func reloadImageIfNeeded() {
+    guard let currentURL = currentImageURL else { return }
+
+    imageLoadTask?.cancel()
+    imageLoadTask = nil
+
+    let targetSize = CGSize(width: bounds.width, height: bounds.height)
+
+    imageLoadTask = imageLoader.loadImage(url: currentURL, targetSize: targetSize) { [weak self] image in
+      guard let self = self,
+        self.currentImageURL == currentURL
+      else { return }
+
+      self.imageView.image = image
+      self.hidePlaceholder()
     }
   }
 }
