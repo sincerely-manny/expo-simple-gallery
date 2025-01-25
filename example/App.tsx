@@ -41,7 +41,7 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Module API Example</Text>
       <ExpoSimpleGalleryView
-        columnsCount={2}
+        columnsCount={3}
         thumbnailsSpacing={20}
         thumbnailStyle={{
           borderRadius: 20,
