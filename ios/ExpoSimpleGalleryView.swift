@@ -53,16 +53,22 @@ final class ExpoSimpleGalleryView: ExpoView {
   }
 
   override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
-    if let existingChildren = mountedHierarchy[index] {
-      for (_, existingView) in existingChildren {
-        existingView.removeFromSuperview()
+    guard let label = childComponentView.accessibilityLabel else { return }
+    if label.starts(with: "GalleryViewOverlay_") {
+      guard let id = Int(label.replacingOccurrences(of: "GalleryViewOverlay_", with: "")) else {
+        return
       }
-    }
+      if let existingChildren = mountedHierarchy[index] {
+        for (_, existingView) in existingChildren {
+          existingView.removeFromSuperview()
+        }
+      }
 
-    pendingMounts.append((index: index, view: childComponentView))
+      pendingMounts.append((index: index, view: childComponentView))
 
-    DispatchQueue.main.async { [weak self] in
-      self?.processPendingMounts()
+      DispatchQueue.main.async { [weak self] in
+        self?.processPendingMounts()
+      }
     }
   }
 

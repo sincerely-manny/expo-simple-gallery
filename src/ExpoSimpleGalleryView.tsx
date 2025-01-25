@@ -3,6 +3,7 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import {
   type ColorValue,
   type NativeSyntheticEvent,
+  Text,
   View,
   processColor,
   useWindowDimensions,
@@ -39,7 +40,16 @@ const MemoizedOverlayComponent = memo(
       [width, height]
     );
     return (
-      <View style={style} nativeID="ExpoSimpleGalleryView" collapsable={false}>
+      <View
+        style={style}
+        nativeID="ExpoSimpleGalleryView"
+        testID="ExpoSimpleGalleryView"
+        collapsable={false}
+        accessibilityLabel={`GalleryViewOverlay_${index}`}
+      >
+        <Text style={{ backgroundColor: 'red', textAlign: 'center' }}>
+          {index}
+        </Text>
         <OverlayComponent selected={selected} uri={uri} index={index} />
       </View>
     );
@@ -115,19 +125,21 @@ export default function ExpoSimpleGalleryView({
       onSelectionChange={handleSelectionChange}
     >
       {/* @ts-expect-error type of children is intentionally set to never | undefined */}
-      {assets.map((uri, index) =>
-        OverlayComponent ? (
-          <MemoizedOverlayComponent
-            key={uri}
-            OverlayComponent={OverlayComponent}
-            uri={uri}
-            index={index}
-            width={thumbnailWidth}
-            height={thumbnailHeight}
-            selected={selectedUris.has(uri)}
-          />
-        ) : null
-      )}
+      {assets
+        .slice(0, 20)
+        .map((uri, index) =>
+          OverlayComponent ? (
+            <MemoizedOverlayComponent
+              key={uri}
+              OverlayComponent={OverlayComponent}
+              uri={uri}
+              index={index}
+              width={thumbnailWidth}
+              height={thumbnailHeight}
+              selected={selectedUris.has(uri)}
+            />
+          ) : null
+        )}
     </NativeViewMemoized>
   );
 }

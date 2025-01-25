@@ -188,6 +188,16 @@ extension GalleryGridView {
 // MARK: - Prefetching
 extension GalleryGridView: UICollectionViewDataSourcePrefetching {
   func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
+
+    let visibleIndexPaths = collectionView.indexPathsForVisibleItems
+    let combinedIndexPaths = indexPaths + visibleIndexPaths
+    let allItems = combinedIndexPaths.map { $0.item }
+    if let minItem = allItems.min(), let maxItem = allItems.max() {
+      let range = [minItem, maxItem]
+
+      print("Combined range: \(range)")
+    }
+
     prefetchIndexPaths.formUnion(indexPaths)
     indexPaths.forEach { prefetchOverlayIfNeeded(at: $0) }
   }
