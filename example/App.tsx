@@ -57,6 +57,15 @@ export default function App() {
         contentContainerStyle={{
           padding: 20,
         }}
+        onSelectionChange={(event) => {
+          console.log('onSelectionChange', event.nativeEvent.selected);
+        }}
+        onThumbnailPress={(event) => {
+          console.log('onThumbnailPress', event.nativeEvent);
+        }}
+        onThumbnailLongPress={(event) => {
+          console.log('onThumbnailLongPress', event.nativeEvent);
+        }}
       />
     </SafeAreaView>
   );

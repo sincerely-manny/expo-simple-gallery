@@ -10,6 +10,7 @@ final class GalleryCell: UICollectionViewCell {
   private var currentOverlayKey: Int?
   private var isConfiguring = false
   var cellIndex: Int?
+  var cellUri: String?
   private var currentImageURL: URL?
   private var placeholderView: UIView?
   private var lastCalculatedSize: CGSize?
@@ -48,19 +49,24 @@ final class GalleryCell: UICollectionViewCell {
       imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
       imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
     ])
+
+    imageView.alpha = 0
   }
 
   func configure(with uri: String, index: Int, overlayHierarchy: [Int: UIView]?) {
     cellIndex = index
-
-    imageView.image = nil
-    showPlaceholder()
-
-    imageLoadTask?.cancel()
-    imageLoadTask = nil
+    cellUri = uri
 
     guard let url = URL(string: uri) else { return }
     currentImageURL = url
+
+    // If image is nil, ensure view is hidden
+    if imageView.image == nil {
+      imageView.alpha = 0
+    }
+
+    imageLoadTask?.cancel()
+    imageLoadTask = nil
 
     let targetSize = CGSize(width: bounds.width, height: bounds.height)
 
@@ -69,38 +75,16 @@ final class GalleryCell: UICollectionViewCell {
         self.currentImageURL == url
       else { return }
 
-      DispatchQueue.main.async {
-        self.imageView.image = image
-        self.hidePlaceholder()
+      self.imageView.image = image
+      // Animate the image view appearing
+      UIView.animate(withDuration: 0.1) {
+        self.imageView.alpha = 1
       }
     }
 
     if let hierarchy = overlayHierarchy {
       safeConfigureOverlay(with: hierarchy)
     }
-  }
-
-  private func showPlaceholder() {
-//    if placeholderView == nil {
-//      let placeholder = UIView()
-//      placeholder.backgroundColor = .systemGray6
-//      placeholder.translatesAutoresizingMaskIntoConstraints = false
-//      contentView.insertSubview(placeholder, belowSubview: overlayContainer)
-//
-//      NSLayoutConstraint.activate([
-//        placeholder.topAnchor.constraint(equalTo: contentView.topAnchor),
-//        placeholder.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-//        placeholder.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-//        placeholder.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-//      ])
-//
-//      placeholderView = placeholder
-//    }
-//    placeholderView?.isHidden = false
-  }
-
-  private func hidePlaceholder() {
-//    placeholderView?.isHidden = true
   }
 
   private func safeConfigureOverlay(with viewHierarchy: [Int: UIView]) {
@@ -158,14 +142,13 @@ final class GalleryCell: UICollectionViewCell {
 
   override func prepareForReuse() {
     super.prepareForReuse()
-//    imageView.image = nil
     currentImageURL = nil
     imageLoadTask?.cancel()
     imageLoadTask = nil
-//    lastCalculatedSize = nil
-//    showPlaceholder()
     clearCurrentOverlay()
     cellIndex = nil
+
+    imageView.alpha = 0
   }
 
   override func layoutSubviews() {
@@ -200,7 +183,9 @@ final class GalleryCell: UICollectionViewCell {
       else { return }
 
       self.imageView.image = image
-      self.hidePlaceholder()
+      UIView.animate(withDuration: 0.1) {
+        self.imageView.alpha = 1
+      }
     }
   }
 }

@@ -4,6 +4,8 @@ final class ImageLoader: ImageLoaderProtocol {
   private var ongoingTasks: [URL: LoadTask] = [:]
   private let taskQueue = DispatchQueue(label: "com.imageloader.queue", attributes: .concurrent)
 
+  private let previewCache = NSCache<NSURL, UIImage>()
+
   struct LoadTask: Cancellable {
     let workItem: DispatchWorkItem
     let requestID: UUID
@@ -13,8 +15,22 @@ final class ImageLoader: ImageLoaderProtocol {
     }
   }
 
+  init() {
+    // Configure cache
+    previewCache.countLimit = 1000
+    previewCache.totalCostLimit = 1024 * 1024 * 50
+  }
+
   func loadImage(url: URL, targetSize: CGSize, completion: @escaping (UIImage?) -> Void) -> Cancellable {
-    // Cancel any existing task for this URL
+    // Check preview cache first
+    if let cachedPreview = previewCache.object(forKey: url as NSURL) {
+      // Deliver cached preview immediately
+      DispatchQueue.main.async {
+        completion(cachedPreview)
+      }
+    }
+
+    // Continue with full resolution load
     taskQueue.async(flags: .barrier) {
       self.ongoingTasks[url]?.cancel()
       self.ongoingTasks.removeValue(forKey: url)
@@ -24,7 +40,6 @@ final class ImageLoader: ImageLoaderProtocol {
     let task = DispatchWorkItem { [weak self] in
       self?.handleImageLoad(url: url, targetSize: targetSize) { image in
         self?.taskQueue.async(flags: .barrier) {
-          // Only complete if this is still the active task
           if self?.ongoingTasks[url]?.requestID == requestID {
             DispatchQueue.main.async {
               completion(image)
@@ -94,8 +109,7 @@ final class ImageLoader: ImageLoaderProtocol {
     completion: @escaping (UIImage?) -> Void
   ) {
     let assetID = url.absoluteString.replacingOccurrences(of: "ph://", with: "")
-    guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil).firstObject
-    else {
+    guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil).firstObject else {
       completion(nil)
       return
     }
@@ -105,12 +119,13 @@ final class ImageLoader: ImageLoaderProtocol {
     options.deliveryMode = .opportunistic
     options.isNetworkAccessAllowed = true
     options.isSynchronous = false
-    
+
     if #available(iOS 17, *) {
       options.allowSecondaryDegradedImage = true
+      options.deliveryMode = .highQualityFormat
+      options.resizeMode = .exact
     }
 
-    // Request a slightly larger size to ensure quality
     let scale = UIScreen.main.scale
     let scaledSize = CGSize(
       width: targetSize.width * scale,
@@ -122,15 +137,14 @@ final class ImageLoader: ImageLoaderProtocol {
       targetSize: scaledSize,
       contentMode: .aspectFill,
       options: options
-    ) { image, info in
-      // Only deliver final image, not degraded ones
-      if let isDegraded = info?[PHImageResultIsDegradedKey] as? Bool,
-        isDegraded
-      {
-        return
-      }
-
-      DispatchQueue.main.async {
+    ) { [weak self] image, info in
+      if let image = image {
+        // Cache degraded images as previews
+        if let isDegraded = info?[PHImageResultIsDegradedKey] as? Bool,
+          isDegraded
+        {
+          self?.previewCache.setObject(image, forKey: url as NSURL)
+        }
         completion(image)
       }
     }

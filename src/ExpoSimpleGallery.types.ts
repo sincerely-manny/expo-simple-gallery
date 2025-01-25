@@ -1,7 +1,18 @@
 import type { ComponentType } from 'react';
-import type { ViewProps, ViewStyle } from 'react-native';
+import type { NativeSyntheticEvent, ViewProps, ViewStyle } from 'react-native';
 
-export type ExpoSimpleGalleryModuleEvents = {};
+type PressedCell = {
+  uri: string;
+  index: number;
+};
+
+export type ExpoSimpleGalleryModuleEvents = {
+  onSelectionChange: (
+    event: NativeSyntheticEvent<{ selected: string[] }>
+  ) => void;
+  onThumbnailPress: (cell: NativeSyntheticEvent<PressedCell>) => void;
+  onThumbnailLongPress: (cell: NativeSyntheticEvent<PressedCell>) => void;
+};
 
 export type ThumbnailOverlayComponentProps = {
   uri: string;
@@ -39,4 +50,4 @@ export type ExpoSimpleGalleryViewProps = ViewProps & {
   >;
 
   children?: never;
-};
+} & ExpoSimpleGalleryModuleEvents;

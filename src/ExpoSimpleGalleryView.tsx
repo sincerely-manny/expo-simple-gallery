@@ -1,7 +1,8 @@
 import { requireNativeView } from 'expo';
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import {
   type ColorValue,
+  type NativeSyntheticEvent,
   View,
   processColor,
   useWindowDimensions,
@@ -14,6 +15,8 @@ import type {
 const NativeView: React.ComponentType<ExpoSimpleGalleryViewProps> =
   requireNativeView('ExpoSimpleGallery');
 
+const NativeViewMemoized = memo(NativeView);
+
 const MemoizedOverlayComponent = memo(
   function MemoizedOverlayComponent({
     OverlayComponent,
@@ -21,12 +24,15 @@ const MemoizedOverlayComponent = memo(
     index,
     width,
     height,
+    // selectedUris,
+    selected,
   }: {
     OverlayComponent: ThumbnailOverlayComponent;
     uri: string;
     index: number;
     width: number;
     height: number;
+    selected: boolean;
   }) {
     const style = useMemo(
       () => ({ position: 'absolute', width, height }) as const,
@@ -34,7 +40,7 @@ const MemoizedOverlayComponent = memo(
     );
     return (
       <View style={style} nativeID="ExpoSimpleGalleryView" collapsable={false}>
-        <OverlayComponent selected={false} uri={uri} index={index} />
+        <OverlayComponent selected={selected} uri={uri} index={index} />
       </View>
     );
   }
@@ -46,6 +52,7 @@ export default function ExpoSimpleGalleryView({
   thumbnailOverlayComponent: OverlayComponent,
   assets,
   thumbnailStyle,
+  onSelectionChange,
   ...props
 }: ExpoSimpleGalleryViewProps) {
   const thumbnailStyleProcessed = useMemo(() => {
@@ -90,11 +97,22 @@ export default function ExpoSimpleGalleryView({
     props.contentContainerStyle,
   ]);
 
+  const [selectedUris, setSelectedUris] = useState<Set<string>>(new Set());
+
+  const handleSelectionChange = useCallback(
+    (event: NativeSyntheticEvent<{ selected: string[] }>) => {
+      setSelectedUris(new Set(event.nativeEvent.selected));
+      onSelectionChange?.(event);
+    },
+    [onSelectionChange]
+  );
+
   return (
-    <NativeView
+    <NativeViewMemoized
       {...props}
       thumbnailStyle={thumbnailStyleProcessed}
       assets={assets}
+      onSelectionChange={handleSelectionChange}
     >
       {/* @ts-expect-error type of children is intentionally set to never | undefined */}
       {assets.map((uri, index) =>
@@ -106,9 +124,10 @@ export default function ExpoSimpleGalleryView({
             index={index}
             width={thumbnailWidth}
             height={thumbnailHeight}
+            selected={selectedUris.has(uri)}
           />
         ) : null
       )}
-    </NativeView>
+    </NativeViewMemoized>
   );
 }

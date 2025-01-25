@@ -2,13 +2,19 @@ import ExpoModulesCore
 import UIKit
 
 final class ExpoSimpleGalleryView: ExpoView {
-  let galleryView = GalleryGridView()
+  var galleryView: GalleryGridView?
   private var pendingMounts: [(index: Int, view: UIView)] = []
   private var mountedHierarchy = [Int: [Int: UIView]]()
 
+  let onThumbnailPress = EventDispatcher()
+  let onThumbnailLongPress = EventDispatcher()
+  let onSelectionChange = EventDispatcher()
+
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
+    galleryView = GalleryGridView(gestureEventDelegate: self)
     clipsToBounds = true
+    guard let galleryView else { return }
     addSubview(galleryView)
     galleryView.frame = bounds
     galleryView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -30,7 +36,7 @@ final class ExpoSimpleGalleryView: ExpoView {
     }
     mountedHierarchy.removeAll()
 
-    galleryView.setHierarchy([:])
+    galleryView?.setHierarchy([:])
   }
 
   private func processPendingMounts() {
@@ -43,7 +49,7 @@ final class ExpoSimpleGalleryView: ExpoView {
       mountedHierarchy[mount.index] = [mount.index: mount.view]
     }
 
-    galleryView.setHierarchy(mountedHierarchy)
+    galleryView?.setHierarchy(mountedHierarchy)
   }
 
   override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
@@ -66,7 +72,24 @@ final class ExpoSimpleGalleryView: ExpoView {
       childComponentView.removeFromSuperview()
     }
 
-    galleryView.setHierarchy(mountedHierarchy)
+    galleryView?.setHierarchy(mountedHierarchy)
   }
 
+}
+
+extension ExpoSimpleGalleryView: GestureEventDelegate {
+  func galleryGrid(_ gallery: GalleryGridView, didPressCell cell: PressedCell) {
+    onThumbnailPress(cell.dict())
+    print(cell)
+  }
+
+  func galleryGrid(_ gallery: GalleryGridView, didLongPressCell cell: PressedCell) {
+    onThumbnailLongPress(cell.dict())
+    print(cell)
+  }
+
+  func galleryGrid(_ gallery: GalleryGridView, didSelectCells assets: Set<String>) {
+    onSelectionChange(["selected": Array(assets)])
+    print(assets)
+  }
 }

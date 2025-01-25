@@ -13,9 +13,21 @@ final class GalleryGridView: UICollectionView {
   private var thumbnailPressAction: ThumbnailPressAction = .open
   private var thumbnailLongPressAction: ThumbnailPressAction = .select
 
-  init() {
+  weak var gestureEventDelegate: GestureEventDelegate?
+  private var selectedAssets = Set<String>()
+  private var isInSelectionMode = true {
+    didSet {
+      if !isInSelectionMode {
+        selectedAssets.removeAll()
+        gestureEventDelegate?.galleryGrid(self, didSelectCells: selectedAssets)
+      }
+    }
+  }
+
+  init(gestureEventDelegate: GestureEventDelegate) {
     let layout = UICollectionViewFlowLayout()
     super.init(frame: .zero, collectionViewLayout: layout)
+    self.gestureEventDelegate = gestureEventDelegate
     setupView()
   }
 
@@ -58,7 +70,9 @@ extension GalleryGridView {
   func setHierarchy(_ hierarchy: [Int: [Int: UIView]]) {
     cellHierarchy = hierarchy
     let visiblePaths = indexPathsForVisibleItems
-    let cellsToUpdate = visiblePaths.filter { !mountedOverlays.contains($0.item) || cellHierarchy[$0.item] != nil }
+    let cellsToUpdate = visiblePaths.filter {
+      !mountedOverlays.contains($0.item) || cellHierarchy[$0.item] != nil
+    }
     if !cellsToUpdate.isEmpty { reloadItems(at: cellsToUpdate) }
   }
 }
@@ -100,40 +114,40 @@ extension GalleryGridView {
   }
 
   func setContentContainerStyle(_ style: [String: Any], animated: Bool = true) {
-      var insets = UIEdgeInsets.zero
-      if let all = style["padding"] as? Double {
-        insets = UIEdgeInsets(
-          top: CGFloat(all),
-          left: CGFloat(all),
-          bottom: CGFloat(all),
-          right: CGFloat(all)
-        )
-      }
-      if let vertical = style["paddingVertical"] as? Double {
-        insets.top = CGFloat(vertical)
-        insets.bottom = CGFloat(vertical)
-      }
-      if let horizontal = style["paddingHorizontal"] as? Double {
-        insets.left = CGFloat(horizontal)
-        insets.right = CGFloat(horizontal)
-      }
-
-      if let top = style["paddingTop"] as? Double {
-        insets.top = CGFloat(top)
-      }
-      if let left = style["paddingLeft"] as? Double {
-        insets.left = CGFloat(left)
-      }
-      if let bottom = style["paddingBottom"] as? Double {
-        insets.bottom = CGFloat(bottom)
-      }
-      if let right = style["paddingRight"] as? Double {
-        insets.right = CGFloat(right)
-      }
-
-      configuration.padding = insets
-      updateLayout(animated: animated)
+    var insets = UIEdgeInsets.zero
+    if let all = style["padding"] as? Double {
+      insets = UIEdgeInsets(
+        top: CGFloat(all),
+        left: CGFloat(all),
+        bottom: CGFloat(all),
+        right: CGFloat(all)
+      )
     }
+    if let vertical = style["paddingVertical"] as? Double {
+      insets.top = CGFloat(vertical)
+      insets.bottom = CGFloat(vertical)
+    }
+    if let horizontal = style["paddingHorizontal"] as? Double {
+      insets.left = CGFloat(horizontal)
+      insets.right = CGFloat(horizontal)
+    }
+
+    if let top = style["paddingTop"] as? Double {
+      insets.top = CGFloat(top)
+    }
+    if let left = style["paddingLeft"] as? Double {
+      insets.left = CGFloat(left)
+    }
+    if let bottom = style["paddingBottom"] as? Double {
+      insets.bottom = CGFloat(bottom)
+    }
+    if let right = style["paddingRight"] as? Double {
+      insets.right = CGFloat(right)
+    }
+
+    configuration.padding = insets
+    updateLayout(animated: animated)
+  }
 }
 
 // MARK: - Gestures
@@ -171,7 +185,6 @@ extension GalleryGridView {
   }
 }
 
-
 // MARK: - Prefetching
 extension GalleryGridView: UICollectionViewDataSourcePrefetching {
   func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
@@ -179,7 +192,9 @@ extension GalleryGridView: UICollectionViewDataSourcePrefetching {
     indexPaths.forEach { prefetchOverlayIfNeeded(at: $0) }
   }
 
-  func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
+  func collectionView(
+    _ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]
+  ) {
     prefetchIndexPaths.subtract(indexPaths)
   }
 
@@ -191,13 +206,18 @@ extension GalleryGridView: UICollectionViewDataSourcePrefetching {
 
 // MARK: - Data Source
 extension GalleryGridView: UICollectionViewDataSource {
-  func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+  func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int)
+    -> Int
+  {
     uris.count
   }
 
-  func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+  func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath)
+    -> UICollectionViewCell
+  {
     let cell =
-      collectionView.dequeueReusableCell(withReuseIdentifier: GalleryCell.identifier, for: indexPath) as! GalleryCell
+      collectionView.dequeueReusableCell(
+        withReuseIdentifier: GalleryCell.identifier, for: indexPath) as! GalleryCell
     configureCell(cell, at: indexPath)
     return cell
   }
@@ -213,7 +233,8 @@ extension GalleryGridView: UICollectionViewDataSource {
   }
 
   func collectionView(
-    _ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath
+    _ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell,
+    forItemAt indexPath: IndexPath
   ) {
     mountedOverlays.remove(indexPath.item)
   }
@@ -255,13 +276,39 @@ struct ContentContainerStyle {
 
 // MARK: - Layout Calculator
 private enum LayoutCalculator {
-  static func cellSize(for config: GalleryConfiguration, in collectionView: UICollectionView) -> CGSize {
+  static func cellSize(for config: GalleryConfiguration, in collectionView: UICollectionView)
+    -> CGSize
+  {
     let horizontalPadding = config.padding.left + config.padding.right
     let totalSpacing = CGFloat(max(config.columns - 1, 0)) * config.spacing
     let usableWidth = collectionView.bounds.width - totalSpacing - horizontalPadding
 
-    let cellWidth = config.columns == 1 ? floor(usableWidth) : floor(usableWidth / CGFloat(config.columns))
+    let cellWidth =
+      config.columns == 1 ? floor(usableWidth) : floor(usableWidth / CGFloat(config.columns))
     let cellHeight = floor(cellWidth / config.imageAspectRatio)
     return CGSize(width: cellWidth, height: cellHeight)
+  }
+}
+
+extension GalleryGridView: UICollectionViewDelegate {
+  func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+
+    guard let cell = collectionView.cellForItem(at: indexPath) as? GalleryCell else {
+      return
+    }
+    guard let cellIndex = cell.cellIndex, let cellUri = cell.cellUri else { return }
+
+    let pressedCell = PressedCell(index: cellIndex, uri: cellUri)
+
+    if isInSelectionMode {
+      if selectedAssets.contains(cellUri) {
+        selectedAssets.remove(cellUri)
+      } else {
+        selectedAssets.insert(cellUri)
+      }
+      gestureEventDelegate?.galleryGrid(self, didSelectCells: selectedAssets)
+    }
+    gestureEventDelegate?.galleryGrid(self, didPressCell: pressedCell)
+
   }
 }
