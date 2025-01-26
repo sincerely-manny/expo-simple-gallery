@@ -13,6 +13,7 @@ final class GalleryGridView: UICollectionView {
   private var thumbnailPressAction: ThumbnailPressAction = .open
   private var thumbnailLongPressAction: ThumbnailPressAction = .select
 
+  weak var overlayPreloadingDelegate: OverlayPreloadingDelegate?
   weak var gestureEventDelegate: GestureEventDelegate?
   private var selectedAssets = Set<String>()
   private var isInSelectionMode = true {
@@ -24,10 +25,11 @@ final class GalleryGridView: UICollectionView {
     }
   }
 
-  init(gestureEventDelegate: GestureEventDelegate) {
+  init(gestureEventDelegate: GestureEventDelegate, overlayPreloadingDelegate: OverlayPreloadingDelegate) {
     let layout = UICollectionViewFlowLayout()
     super.init(frame: .zero, collectionViewLayout: layout)
     self.gestureEventDelegate = gestureEventDelegate
+    self.overlayPreloadingDelegate = overlayPreloadingDelegate
     setupView()
   }
 
@@ -65,6 +67,19 @@ extension GalleryGridView {
   func setAssets(_ assets: [String]) {
     uris = assets
     reloadData()
+
+    if !assets.isEmpty {
+      let visibleIndexPaths = indexPathsForVisibleItems
+      let visibleItems = visibleIndexPaths.map { $0.item }
+
+      if let minItem = visibleItems.min(), let maxItem = visibleItems.max() {
+        let range = (minItem, maxItem)
+        overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: range)
+      } else {
+        let initialRange = (0, min(assets.count - 1, 30))
+        overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: initialRange)
+      }
+    }
   }
 
   func setHierarchy(_ hierarchy: [Int: [Int: UIView]]) {
@@ -193,9 +208,8 @@ extension GalleryGridView: UICollectionViewDataSourcePrefetching {
     let combinedIndexPaths = indexPaths + visibleIndexPaths
     let allItems = combinedIndexPaths.map { $0.item }
     if let minItem = allItems.min(), let maxItem = allItems.max() {
-      let range = [minItem, maxItem]
-
-      print("Combined range: \(range)")
+      let range = (minItem, maxItem)
+      overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: range)
     }
 
     prefetchIndexPaths.formUnion(indexPaths)

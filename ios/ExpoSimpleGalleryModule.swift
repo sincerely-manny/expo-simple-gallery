@@ -4,7 +4,7 @@ public class ExpoSimpleGalleryModule: Module {
   public func definition() -> ModuleDefinition {
     Name("ExpoSimpleGallery")
     View(ExpoSimpleGalleryView.self) {
-      Events("onThumbnailPress", "onThumbnailLongPress", "onSelectionChange")
+      Events("onThumbnailPress", "onThumbnailLongPress", "onSelectionChange", "onOverlayPreloadRequested")
 
       Prop("assets") { (view: ExpoSimpleGalleryView, assets: [String]) in
         view.galleryView?.setAssets(assets)

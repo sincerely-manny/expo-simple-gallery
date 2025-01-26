@@ -7,11 +7,14 @@ type PressedCell = {
 };
 
 export type ExpoSimpleGalleryModuleEvents = {
-  onSelectionChange: (
+  onSelectionChange?: (
     event: NativeSyntheticEvent<{ selected: string[] }>
   ) => void;
-  onThumbnailPress: (cell: NativeSyntheticEvent<PressedCell>) => void;
-  onThumbnailLongPress: (cell: NativeSyntheticEvent<PressedCell>) => void;
+  onThumbnailPress?: (event: NativeSyntheticEvent<PressedCell>) => void;
+  onThumbnailLongPress?: (event: NativeSyntheticEvent<PressedCell>) => void;
+  onOverlayPreloadRequested?: (
+    event: NativeSyntheticEvent<{ range: [number, number] }>
+  ) => void;
 };
 
 export type ThumbnailOverlayComponentProps = {

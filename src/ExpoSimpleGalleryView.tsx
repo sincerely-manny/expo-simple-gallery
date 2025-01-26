@@ -25,8 +25,8 @@ const MemoizedOverlayComponent = memo(
     index,
     width,
     height,
-    // selectedUris,
     selected,
+    isNull,
   }: {
     OverlayComponent: ThumbnailOverlayComponent;
     uri: string;
@@ -34,23 +34,29 @@ const MemoizedOverlayComponent = memo(
     width: number;
     height: number;
     selected: boolean;
+    isNull: boolean;
   }) {
     const style = useMemo(
       () => ({ position: 'absolute', width, height }) as const,
       [width, height]
     );
+    if (isNull) return null;
+
     return (
       <View
         style={style}
         nativeID="ExpoSimpleGalleryView"
-        testID="ExpoSimpleGalleryView"
         collapsable={false}
         accessibilityLabel={`GalleryViewOverlay_${index}`}
       >
-        <Text style={{ backgroundColor: 'red', textAlign: 'center' }}>
-          {index}
-        </Text>
-        <OverlayComponent selected={selected} uri={uri} index={index} />
+        {!isNull && (
+          <>
+            <Text style={{ backgroundColor: 'red', textAlign: 'center' }}>
+              {index}
+            </Text>
+            <OverlayComponent selected={selected} uri={uri} index={index} />
+          </>
+        )}
       </View>
     );
   }
@@ -63,6 +69,7 @@ export default function ExpoSimpleGalleryView({
   assets,
   thumbnailStyle,
   onSelectionChange,
+  onOverlayPreloadRequested,
   ...props
 }: ExpoSimpleGalleryViewProps) {
   const thumbnailStyleProcessed = useMemo(() => {
@@ -108,6 +115,9 @@ export default function ExpoSimpleGalleryView({
   ]);
 
   const [selectedUris, setSelectedUris] = useState<Set<string>>(new Set());
+  const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
+  const visibleRangeMin = useMemo(() => visibleRange[0], [visibleRange]);
+  const visibleRangeMax = useMemo(() => visibleRange[1], [visibleRange]);
 
   const handleSelectionChange = useCallback(
     (event: NativeSyntheticEvent<{ selected: string[] }>) => {
@@ -117,29 +127,41 @@ export default function ExpoSimpleGalleryView({
     [onSelectionChange]
   );
 
+  const handleOverlayPreloadRequest = useCallback(
+    (event: NativeSyntheticEvent<{ range: [number, number] }>) => {
+      console.log('handleOverlayPreloadRequest', event.nativeEvent.range);
+      const [start, end] = event.nativeEvent.range;
+      setVisibleRange([start, end]);
+      onOverlayPreloadRequested?.(event);
+    },
+    [onOverlayPreloadRequested]
+  );
+
+  // return null;
   return (
     <NativeViewMemoized
       {...props}
       thumbnailStyle={thumbnailStyleProcessed}
       assets={assets}
       onSelectionChange={handleSelectionChange}
+      onOverlayPreloadRequested={handleOverlayPreloadRequest}
     >
+      {/* {overlaysToRender} */}
       {/* @ts-expect-error type of children is intentionally set to never | undefined */}
-      {assets
-        .slice(0, 20)
-        .map((uri, index) =>
-          OverlayComponent ? (
-            <MemoizedOverlayComponent
-              key={uri}
-              OverlayComponent={OverlayComponent}
-              uri={uri}
-              index={index}
-              width={thumbnailWidth}
-              height={thumbnailHeight}
-              selected={selectedUris.has(uri)}
-            />
-          ) : null
-        )}
+      {assets.map((uri, index) =>
+        OverlayComponent ? (
+          <MemoizedOverlayComponent
+            key={uri}
+            OverlayComponent={OverlayComponent}
+            uri={uri}
+            index={index}
+            width={thumbnailWidth}
+            height={thumbnailHeight}
+            selected={selectedUris.has(uri)}
+            isNull={index < visibleRangeMin || index > visibleRangeMax}
+          />
+        ) : null
+      )}
     </NativeViewMemoized>
   );
 }
