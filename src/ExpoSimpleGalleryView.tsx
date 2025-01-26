@@ -49,14 +49,10 @@ const MemoizedOverlayComponent = memo(
         collapsable={false}
         accessibilityLabel={`GalleryViewOverlay_${index}`}
       >
-        {!isNull && (
-          <>
-            <Text style={{ backgroundColor: 'red', textAlign: 'center' }}>
-              {index + 1}
-            </Text>
-            <OverlayComponent selected={selected} uri={uri} index={index} />
-          </>
-        )}
+        <Text style={{ backgroundColor: 'red', textAlign: 'center' }}>
+          {index}
+        </Text>
+        <OverlayComponent selected={selected} uri={uri} index={index} />
       </View>
     );
   }
@@ -158,7 +154,9 @@ export default function ExpoSimpleGalleryView({
             width={thumbnailWidth}
             height={thumbnailHeight}
             selected={selectedUris.has(uri)}
-            isNull={index < visibleRangeMin || index > visibleRangeMax}
+            isNull={
+              !(index >= visibleRangeMin - 30 && index <= visibleRangeMax + 30)
+            }
             // isNull={false}
           />
         ) : null

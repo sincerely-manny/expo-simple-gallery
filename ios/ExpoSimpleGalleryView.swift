@@ -21,6 +21,7 @@ final class ExpoSimpleGalleryView: ExpoView {
   }
 
   override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
+    print("########## mountChildComponentView ", childComponentView.accessibilityLabel)
     guard let label = childComponentView.accessibilityLabel,
       label.starts(with: "GalleryViewOverlay_"),
       let id = Int(label.replacingOccurrences(of: "GalleryViewOverlay_", with: ""))
@@ -33,6 +34,7 @@ final class ExpoSimpleGalleryView: ExpoView {
   }
 
   override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
+    print("########## UNmountChildComponentView ", childComponentView.accessibilityLabel)
     guard let label = childComponentView.accessibilityLabel,
       label.starts(with: "GalleryViewOverlay_"),
       let id = Int(label.replacingOccurrences(of: "GalleryViewOverlay_", with: ""))
@@ -42,6 +44,11 @@ final class ExpoSimpleGalleryView: ExpoView {
     }
     overlays.removeValue(forKey: id)
     galleryView?.setOverlays(overlays)
+  }
+  
+  deinit {
+    print("########## ExpoSimpleGalleryView DEINIT")
+    galleryView?.setOverlays([:])
   }
 }
 

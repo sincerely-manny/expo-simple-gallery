@@ -7,6 +7,7 @@ final class GalleryGridView: UICollectionView {
   private var configuration = GalleryConfiguration()
   private var uris: [String] = []
   private var overlays: [Int: UIView] = [:]
+  private var mountedOverlays: [Int: (view: UIView, cell: GalleryCell)] = [:]
 
   private var thumbnailPressAction: ThumbnailPressAction = .open
   private var thumbnailLongPressAction: ThumbnailPressAction = .select
@@ -77,19 +78,29 @@ extension GalleryGridView {
       }
     }
   }
-  
+
   func setOverlays(_ overlays: [Int: UIView]) {
-    self.overlays = overlays
-    let cellsToUpdate = indexPathsForVisibleItems.filter {
-      overlays.keys.contains($0.item) || overlays[$0.item] != nil
+    for (index, mounted) in mountedOverlays {
+      if overlays[index] !== mounted.view {
+        mounted.cell.unmountOverlay()
+        mountedOverlays.removeValue(forKey: index)
+      }
     }
-    if !cellsToUpdate.isEmpty {
-      cellsToUpdate.forEach { indexPath in
-        if let cell = cellForItem(at: indexPath) as? GalleryCell {
-          if let overlay = overlays[indexPath.item] {
-            cell.mountOverlay(overlay)
-          }
+
+    self.overlays = overlays
+
+    let visibleCells = indexPathsForVisibleItems.sorted { $0.item < $1.item }
+    for indexPath in visibleCells {
+      guard let cell = cellForItem(at: indexPath) as? GalleryCell else { continue }
+
+      if let overlay = overlays[indexPath.item] {
+        if mountedOverlays[indexPath.item]?.view !== overlay {
+          cell.mountOverlay(overlay)
+          mountedOverlays[indexPath.item] = (overlay, cell)
         }
+      } else {
+        cell.unmountOverlay()
+        mountedOverlays.removeValue(forKey: indexPath.item)
       }
     }
   }
@@ -236,8 +247,11 @@ extension GalleryGridView: UICollectionViewDataSource {
 
   private func configureCell(_ cell: GalleryCell, at indexPath: IndexPath) {
     let uri = uris[indexPath.item]
-
-    cell.configure(with: uri, index: indexPath.item)
+    if let overlay = overlays[indexPath.item] {
+      cell.configure(with: uri, index: indexPath.item, withOverlay: overlay)
+    } else {
+      cell.configure(with: uri, index: indexPath.item)
+    }
     cell.applyStyle(configuration: configuration)
   }
 
@@ -246,6 +260,7 @@ extension GalleryGridView: UICollectionViewDataSource {
     forItemAt indexPath: IndexPath
   ) {
     if let galleryCell = cell as? GalleryCell {
+      print("##### didEndDisplaying", galleryCell.cellIndex)
       galleryCell.unmountOverlay()
     }
   }

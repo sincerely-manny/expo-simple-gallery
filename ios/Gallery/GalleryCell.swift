@@ -49,50 +49,54 @@ final class GalleryCell: UICollectionViewCell {
     imageView.alpha = 0
   }
 
-  func configure(with uri: String, index: Int) {
+  func configure(with uri: String, index: Int, withOverlay overlay: UIView? = nil) {
     cellIndex = index
     cellUri = uri
 
     guard let url = URL(string: uri) else { return }
     currentImageURL = url
-
     if imageView.image == nil {
       imageView.alpha = 0
     }
-
     imageLoadTask?.cancel()
     imageLoadTask = nil
-
     let targetSize = CGSize(width: bounds.width, height: bounds.height)
-
     imageLoadTask = imageLoader.loadImage(url: url, targetSize: targetSize) { [weak self] image in
       guard let self = self,
         self.currentImageURL == url
       else { return }
-
       self.imageView.image = image
-      
       UIView.animate(withDuration: 0.1) {
         self.imageView.alpha = 1
       }
     }
+
+    if let newOverlay = overlay {
+      mountOverlay(newOverlay)
+    }
   }
 
   func mountOverlay(_ overlay: UIView) {
+    print("########## mountOverlay ", cellIndex)
+    guard overlay !== currentOverlay else { return }
+
     unmountOverlay()
+
+    overlayContainer.alpha = 0
     overlayContainer.mountChildComponentView(overlay, index: 0)
     currentOverlay = overlay
+
+    UIView.animate(withDuration: 0.1) {
+      self.overlayContainer.alpha = 1
+    }
   }
 
-  func unmountOverlay(_ overlay: UIView? = nil) {
-    if let currentOverlay {
-      overlayContainer.unmountChildComponentView(currentOverlay, index: 0)
-      self.currentOverlay = nil
+  func unmountOverlay() {
+    print("########## UNmountOverlay ", cellIndex)
+    if let current = currentOverlay {
+      overlayContainer.unmountChildComponentView(current, index: 0)
+      currentOverlay = nil
     }
-    if let overlay {
-      overlayContainer.unmountChildComponentView(overlay, index: 0)
-    }
-
   }
 
   override func prepareForReuse() {
@@ -103,26 +107,6 @@ final class GalleryCell: UICollectionViewCell {
     imageLoadTask = nil
     cellIndex = nil
     imageView.alpha = 0
-  }
-
-  private func reloadImageIfNeeded() {
-    guard let currentURL = currentImageURL else { return }
-
-    imageLoadTask?.cancel()
-    imageLoadTask = nil
-
-    let targetSize = CGSize(width: bounds.width, height: bounds.height)
-
-    imageLoadTask = imageLoader.loadImage(url: currentURL, targetSize: targetSize) { [weak self] image in
-      guard let self = self,
-        self.currentImageURL == currentURL
-      else { return }
-
-      self.imageView.image = image
-      UIView.animate(withDuration: 0.1) {
-        self.imageView.alpha = 1
-      }
-    }
   }
 
   deinit {
