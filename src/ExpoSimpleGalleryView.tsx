@@ -52,7 +52,7 @@ const MemoizedOverlayComponent = memo(
         {!isNull && (
           <>
             <Text style={{ backgroundColor: 'red', textAlign: 'center' }}>
-              {index}
+              {index + 1}
             </Text>
             <OverlayComponent selected={selected} uri={uri} index={index} />
           </>
@@ -159,6 +159,7 @@ export default function ExpoSimpleGalleryView({
             height={thumbnailHeight}
             selected={selectedUris.has(uri)}
             isNull={index < visibleRangeMin || index > visibleRangeMax}
+            // isNull={false}
           />
         ) : null
       )}

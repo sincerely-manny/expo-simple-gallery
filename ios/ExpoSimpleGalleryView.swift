@@ -3,10 +3,7 @@ import UIKit
 
 final class ExpoSimpleGalleryView: ExpoView {
   var galleryView: GalleryGridView?
-  private var pendingMounts: [(index: Int, view: UIView)] = []
-  private var mountedHierarchy = [Int: [Int: UIView]]()
-  private var idToIndexMap = [Int: Int]()
-  private var indexToIdMap = [Int: Int]()
+  private var overlays: [Int: UIView] = [:]
 
   let onOverlayPreloadRequested = EventDispatcher()
   let onThumbnailPress = EventDispatcher()
@@ -23,46 +20,6 @@ final class ExpoSimpleGalleryView: ExpoView {
     galleryView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
   }
 
-//  deinit {
-//    cleanup()
-//  }
-//
-//  private func cleanup() {
-//    pendingMounts.removeAll()
-//
-//    for (_, children) in mountedHierarchy {
-//      for (_, view) in children {
-//        if view.superview as? ExpoView != nil {
-//          view.removeFromSuperview()
-//        }
-//      }
-//    }
-//    mountedHierarchy.removeAll()
-//
-//    galleryView?.setHierarchy([:])
-//  }
-
-  private func processPendingMounts() {
-    guard !pendingMounts.isEmpty else { return }
-
-    let sortedMounts = pendingMounts.sorted { $0.index < $1.index }
-    pendingMounts.removeAll()
-
-    for mount in sortedMounts {
-      if let label = mount.view.accessibilityLabel,
-        label.starts(with: "GalleryViewOverlay___"),
-        let id = Int(label.replacingOccurrences(of: "GalleryViewOverlay_", with: ""))
-      {
-        // Store both mappings
-        idToIndexMap[id] = mount.index
-        indexToIdMap[mount.index] = id
-        mountedHierarchy[id] = [id: mount.view]
-      }
-    }
-
-    galleryView?.setHierarchy(mountedHierarchy)
-  }
-
   override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
     guard let label = childComponentView.accessibilityLabel,
       label.starts(with: "GalleryViewOverlay_"),
@@ -71,21 +28,8 @@ final class ExpoSimpleGalleryView: ExpoView {
       super.mountChildComponentView(childComponentView, index: index)
       return
     }
-
-    // Clean up existing view for this ID or index
-//    if let existingIndex = idToIndexMap[id] {
-//      if let existingView = mountedHierarchy[id]?[id] {
-//        existingView.removeFromSuperview()
-//      }
-//      mountedHierarchy.removeValue(forKey: id)
-//      indexToIdMap.removeValue(forKey: existingIndex)
-//    }
-//
-//    pendingMounts.append((index: index, view: childComponentView))
-//
-//    DispatchQueue.main.async { [weak self] in
-//      self?.processPendingMounts()
-//    }
+    overlays[id] = childComponentView
+    galleryView?.setOverlays(overlays)
   }
 
   override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
@@ -96,22 +40,9 @@ final class ExpoSimpleGalleryView: ExpoView {
       super.unmountChildComponentView(childComponentView, index: index)
       return
     }
-    // Handle unmounting by index
-//    if let id = indexToIdMap[index] {
-//      mountedHierarchy.removeValue(forKey: id)
-//      idToIndexMap.removeValue(forKey: id)
-//      indexToIdMap.removeValue(forKey: index)
-//      childComponentView.removeFromSuperview()
-//    }
-//
-//    galleryView?.setHierarchy(mountedHierarchy)
+    overlays.removeValue(forKey: id)
+    galleryView?.setOverlays(overlays)
   }
-
-  // Add method to get overlay by ID
-  func getOverlay(forId id: Int) -> UIView? {
-    return mountedHierarchy[id]?[id]
-  }
-
 }
 
 extension ExpoSimpleGalleryView: GestureEventDelegate {

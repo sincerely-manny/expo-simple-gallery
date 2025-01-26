@@ -6,9 +6,7 @@ import React
 final class GalleryGridView: UICollectionView {
   private var configuration = GalleryConfiguration()
   private var uris: [String] = []
-  private var cellHierarchy = [Int: [Int: UIView]]()
-  private var prefetchIndexPaths = Set<IndexPath>()
-  private var mountedOverlays = Set<Int>()
+  private var overlays: [Int: UIView] = [:]
 
   private var thumbnailPressAction: ThumbnailPressAction = .open
   private var thumbnailLongPressAction: ThumbnailPressAction = .select
@@ -69,9 +67,7 @@ extension GalleryGridView {
     reloadData()
 
     if !assets.isEmpty {
-      let visibleIndexPaths = indexPathsForVisibleItems
-      let visibleItems = visibleIndexPaths.map { $0.item }
-
+      let visibleItems = indexPathsForVisibleItems.map { $0.item }
       if let minItem = visibleItems.min(), let maxItem = visibleItems.max() {
         let range = (minItem, maxItem)
         overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: range)
@@ -81,14 +77,21 @@ extension GalleryGridView {
       }
     }
   }
-
-  func setHierarchy(_ hierarchy: [Int: [Int: UIView]]) {
-    cellHierarchy = hierarchy
-    let visiblePaths = indexPathsForVisibleItems
-    let cellsToUpdate = visiblePaths.filter {
-      !mountedOverlays.contains($0.item) || cellHierarchy[$0.item] != nil
+  
+  func setOverlays(_ overlays: [Int: UIView]) {
+    self.overlays = overlays
+    let cellsToUpdate = indexPathsForVisibleItems.filter {
+      overlays.keys.contains($0.item) || overlays[$0.item] != nil
     }
-    if !cellsToUpdate.isEmpty { reloadItems(at: cellsToUpdate) }
+    if !cellsToUpdate.isEmpty {
+      cellsToUpdate.forEach { indexPath in
+        if let cell = cellForItem(at: indexPath) as? GalleryCell {
+          if let overlay = overlays[indexPath.item] {
+            cell.mountOverlay(overlay)
+          }
+        }
+      }
+    }
   }
 }
 
@@ -203,7 +206,6 @@ extension GalleryGridView {
 // MARK: - Prefetching
 extension GalleryGridView: UICollectionViewDataSourcePrefetching {
   func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
-
     let visibleIndexPaths = collectionView.indexPathsForVisibleItems
     let combinedIndexPaths = indexPaths + visibleIndexPaths
     let allItems = combinedIndexPaths.map { $0.item }
@@ -211,20 +213,6 @@ extension GalleryGridView: UICollectionViewDataSourcePrefetching {
       let range = (minItem, maxItem)
       overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: range)
     }
-
-    prefetchIndexPaths.formUnion(indexPaths)
-    indexPaths.forEach { prefetchOverlayIfNeeded(at: $0) }
-  }
-
-  func collectionView(
-    _ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]
-  ) {
-    prefetchIndexPaths.subtract(indexPaths)
-  }
-
-  private func prefetchOverlayIfNeeded(at indexPath: IndexPath) {
-    guard let cell = cellForItem(at: indexPath) as? GalleryCell else { return }
-    cell.configureOverlay(with: cellHierarchy[indexPath.item] ?? [:])
   }
 }
 
@@ -248,19 +236,18 @@ extension GalleryGridView: UICollectionViewDataSource {
 
   private func configureCell(_ cell: GalleryCell, at indexPath: IndexPath) {
     let uri = uris[indexPath.item]
-    let overlay = cellHierarchy[indexPath.item]
 
-    cell.configure(with: uri, index: indexPath.item, overlayHierarchy: overlay)
+    cell.configure(with: uri, index: indexPath.item)
     cell.applyStyle(configuration: configuration)
-
-    if overlay != nil { mountedOverlays.insert(indexPath.item) }
   }
 
   func collectionView(
     _ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell,
     forItemAt indexPath: IndexPath
   ) {
-    mountedOverlays.remove(indexPath.item)
+    if let galleryCell = cell as? GalleryCell {
+      galleryCell.unmountOverlay()
+    }
   }
 }
 
