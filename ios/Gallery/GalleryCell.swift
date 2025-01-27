@@ -2,13 +2,12 @@ import ExpoModulesCore
 
 final class GalleryCell: UICollectionViewCell {
   static let identifier = "GalleryCell"
-
   var cellIndex: Int?
   var cellUri: String?
 
+  weak var overlayMountingDelegate: OverlayMountingDelegate?
   private let imageView = UIImageView()
-  private var currentOverlay: UIView?
-  private let overlayContainer: ExpoView
+  let overlayContainer: ExpoView
   private var imageLoadTask: Cancellable?
   private var imageLoader: ImageLoaderProtocol
   private var currentImageURL: URL?
@@ -49,9 +48,13 @@ final class GalleryCell: UICollectionViewCell {
     imageView.alpha = 0
   }
 
-  func configure(with uri: String, index: Int, withOverlay overlay: UIView? = nil) {
+  func configure(
+    with uri: String, index: Int,
+    withOverlayMountingDelegate overlayMountingDelegate: OverlayMountingDelegate
+  ) {
     cellIndex = index
     cellUri = uri
+    self.overlayMountingDelegate = overlayMountingDelegate
 
     guard let url = URL(string: uri) else { return }
     currentImageURL = url
@@ -71,36 +74,11 @@ final class GalleryCell: UICollectionViewCell {
       }
     }
 
-    if let newOverlay = overlay {
-      mountOverlay(newOverlay)
-    }
-  }
-
-  func mountOverlay(_ overlay: UIView) {
-    print("########## mountOverlay ", cellIndex)
-    guard overlay !== currentOverlay else { return }
-
-    unmountOverlay()
-
-    overlayContainer.alpha = 0
-    overlayContainer.mountChildComponentView(overlay, index: 0)
-    currentOverlay = overlay
-
-    UIView.animate(withDuration: 0.1) {
-      self.overlayContainer.alpha = 1
-    }
-  }
-
-  func unmountOverlay() {
-    print("########## UNmountOverlay ", cellIndex)
-    if let current = currentOverlay {
-      overlayContainer.unmountChildComponentView(current, index: 0)
-      currentOverlay = nil
-    }
+    overlayMountingDelegate.mount(to: self)
   }
 
   override func prepareForReuse() {
-    unmountOverlay()
+    overlayMountingDelegate?.unmount(from: self)
     super.prepareForReuse()
     currentImageURL = nil
     imageLoadTask?.cancel()
@@ -110,7 +88,7 @@ final class GalleryCell: UICollectionViewCell {
   }
 
   deinit {
-    unmountOverlay()
+    overlayMountingDelegate?.unmount(from: self)
   }
 }
 

@@ -6,13 +6,12 @@ import React
 final class GalleryGridView: UICollectionView {
   private var configuration = GalleryConfiguration()
   private var uris: [String] = []
-  private var overlays: [Int: UIView] = [:]
-  private var mountedOverlays: [Int: (view: UIView, cell: GalleryCell)] = [:]
 
   private var thumbnailPressAction: ThumbnailPressAction = .open
   private var thumbnailLongPressAction: ThumbnailPressAction = .select
 
   weak var overlayPreloadingDelegate: OverlayPreloadingDelegate?
+  weak var overlayMountingDelegate: OverlayMountingDelegate?
   weak var gestureEventDelegate: GestureEventDelegate?
   private var selectedAssets = Set<String>()
   private var isInSelectionMode = true {
@@ -24,15 +23,31 @@ final class GalleryGridView: UICollectionView {
     }
   }
 
-  init(gestureEventDelegate: GestureEventDelegate, overlayPreloadingDelegate: OverlayPreloadingDelegate) {
+  init(
+    gestureEventDelegate: GestureEventDelegate,
+    overlayPreloadingDelegate: OverlayPreloadingDelegate,
+    overlayMountingDelegate: OverlayMountingDelegate
+  ) {
     let layout = UICollectionViewFlowLayout()
     super.init(frame: .zero, collectionViewLayout: layout)
     self.gestureEventDelegate = gestureEventDelegate
     self.overlayPreloadingDelegate = overlayPreloadingDelegate
+    self.overlayMountingDelegate = overlayMountingDelegate
     setupView()
   }
 
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+  func cell(withIndex index: Int) -> GalleryCell? {
+    let indexPath = IndexPath(item: index, section: 0)
+    return cellForItem(at: indexPath) as? GalleryCell
+  }
+
+  func visibleCells() -> [GalleryCell] {
+    let visibleIndexPaths = indexPathsForVisibleItems
+    return visibleIndexPaths.compactMap { cellForItem(at: $0) as? GalleryCell }
+  }
+
 }
 
 // MARK: - Setup & Configuration
@@ -75,32 +90,6 @@ extension GalleryGridView {
       } else {
         let initialRange = (0, min(assets.count - 1, 30))
         overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: initialRange)
-      }
-    }
-  }
-
-  func setOverlays(_ overlays: [Int: UIView]) {
-    for (index, mounted) in mountedOverlays {
-      if overlays[index] !== mounted.view {
-        mounted.cell.unmountOverlay()
-        mountedOverlays.removeValue(forKey: index)
-      }
-    }
-
-    self.overlays = overlays
-
-    let visibleCells = indexPathsForVisibleItems.sorted { $0.item < $1.item }
-    for indexPath in visibleCells {
-      guard let cell = cellForItem(at: indexPath) as? GalleryCell else { continue }
-
-      if let overlay = overlays[indexPath.item] {
-        if mountedOverlays[indexPath.item]?.view !== overlay {
-          cell.mountOverlay(overlay)
-          mountedOverlays[indexPath.item] = (overlay, cell)
-        }
-      } else {
-        cell.unmountOverlay()
-        mountedOverlays.removeValue(forKey: indexPath.item)
       }
     }
   }
@@ -247,11 +236,9 @@ extension GalleryGridView: UICollectionViewDataSource {
 
   private func configureCell(_ cell: GalleryCell, at indexPath: IndexPath) {
     let uri = uris[indexPath.item]
-    if let overlay = overlays[indexPath.item] {
-      cell.configure(with: uri, index: indexPath.item, withOverlay: overlay)
-    } else {
-      cell.configure(with: uri, index: indexPath.item)
-    }
+    guard let overlayMountingDelegate else { return }
+    cell.configure(
+      with: uri, index: indexPath.item, withOverlayMountingDelegate: overlayMountingDelegate)
     cell.applyStyle(configuration: configuration)
   }
 
@@ -260,8 +247,7 @@ extension GalleryGridView: UICollectionViewDataSource {
     forItemAt indexPath: IndexPath
   ) {
     if let galleryCell = cell as? GalleryCell {
-      print("##### didEndDisplaying", galleryCell.cellIndex)
-      galleryCell.unmountOverlay()
+      overlayMountingDelegate?.unmount(from: galleryCell)
     }
   }
 }
