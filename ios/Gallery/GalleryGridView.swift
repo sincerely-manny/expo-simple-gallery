@@ -1,6 +1,21 @@
 import React
 
-// MARK: - GalleryGridView.swift
+class CustomLayout: UICollectionViewFlowLayout {
+  private let prefetchBuffer: CGFloat = 100  // The buffer to increase the range before invalidating the layout
+
+  override func shouldInvalidateLayout(forBoundsChange newBounds: CGRect) -> Bool {
+    // Get the current collection view bounds and content offset
+    guard let collectionView = collectionView else { return false }
+
+    // Check if the collection view has scrolled past the threshold (increase prefetching range)
+    if collectionView.contentOffset.y < -prefetchBuffer {
+      return true  // Invalidate layout and adjust the range
+    }
+
+    // Otherwise, don't invalidate the layout
+    return super.shouldInvalidateLayout(forBoundsChange: newBounds)
+  }
+}
 
 // MARK: Main View
 final class GalleryGridView: UICollectionView {
@@ -38,16 +53,6 @@ final class GalleryGridView: UICollectionView {
 
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-  func cell(withIndex index: Int) -> GalleryCell? {
-    let indexPath = IndexPath(item: index, section: 0)
-    return cellForItem(at: indexPath) as? GalleryCell
-  }
-
-  func visibleCells() -> [GalleryCell] {
-    let visibleIndexPaths = indexPathsForVisibleItems
-    return visibleIndexPaths.compactMap { cellForItem(at: $0) as? GalleryCell }
-  }
-
 }
 
 // MARK: - Setup & Configuration
@@ -66,6 +71,7 @@ extension GalleryGridView {
     flowLayout.minimumInteritemSpacing = configuration.spacing
     flowLayout.minimumLineSpacing = configuration.spacing
     flowLayout.sectionInset = configuration.padding
+    flowLayout.invalidationContext(forBoundsChange: .zero)
 
     performLayoutUpdate(animated: animated)
   }
@@ -92,6 +98,16 @@ extension GalleryGridView {
         overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: initialRange)
       }
     }
+  }
+
+  func cell(withIndex index: Int) -> GalleryCell? {
+    let indexPath = IndexPath(item: index, section: 0)
+    return cellForItem(at: indexPath) as? GalleryCell
+  }
+
+  func visibleCells() -> [GalleryCell] {
+    let visibleIndexPaths = indexPathsForVisibleItems
+    return visibleIndexPaths.compactMap { cellForItem(at: $0) as? GalleryCell }
   }
 }
 
@@ -168,41 +184,6 @@ extension GalleryGridView {
   }
 }
 
-// MARK: - Gestures
-extension GalleryGridView {
-  func setThumbnailPressAction(_ action: String) {
-    switch action {
-    case "select":
-      thumbnailPressAction = .select
-    case "open":
-      thumbnailPressAction = .open
-    case "preview":
-      thumbnailPressAction = .preview
-    case "none":
-      thumbnailPressAction = .none
-    default:
-      thumbnailPressAction = .open
-    }
-    updateLayout(animated: false)
-  }
-
-  func setThumbnailLongPressAction(_ action: String) {
-    switch action {
-    case "select":
-      thumbnailLongPressAction = .select
-    case "open":
-      thumbnailLongPressAction = .open
-    case "preview":
-      thumbnailLongPressAction = .preview
-    case "none":
-      thumbnailLongPressAction = .none
-    default:
-      thumbnailLongPressAction = .select
-    }
-    updateLayout(animated: false)
-  }
-}
-
 // MARK: - Prefetching
 extension GalleryGridView: UICollectionViewDataSourcePrefetching {
   func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
@@ -242,14 +223,14 @@ extension GalleryGridView: UICollectionViewDataSource {
     cell.applyStyle(configuration: configuration)
   }
 
-  func collectionView(
-    _ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell,
-    forItemAt indexPath: IndexPath
-  ) {
-    if let galleryCell = cell as? GalleryCell {
-      overlayMountingDelegate?.unmount(from: galleryCell)
-    }
-  }
+//  func collectionView(
+//    _ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell,
+//    forItemAt indexPath: IndexPath
+//  ) {
+//    if let galleryCell = cell as? GalleryCell {
+////      overlayMountingDelegate?.unmount(from: galleryCell)
+//    }
+//  }
 }
 
 // MARK: - Layout Delegate
@@ -259,46 +240,6 @@ extension GalleryGridView: UICollectionViewDelegateFlowLayout {
     sizeForItemAt indexPath: IndexPath
   ) -> CGSize {
     LayoutCalculator.cellSize(for: configuration, in: collectionView)
-  }
-}
-
-// MARK: - Helper Types
-struct GalleryConfiguration {
-  var columns: Int = 3
-  var spacing: CGFloat = 0
-  var imageAspectRatio: CGFloat = 1
-  var borderRadius: CGFloat = 0
-  var borderWidth: CGFloat = 0
-  var borderColor: UIColor?
-  var padding: UIEdgeInsets = .zero
-}
-
-enum ThumbnailPressAction { case select, open, preview, none }
-
-struct ThumbnailStyle {
-  let aspectRatio: CGFloat
-  let borderRadius: CGFloat
-  let borderWidth: CGFloat
-  let borderColor: UIColor?
-}
-
-struct ContentContainerStyle {
-  let padding: UIEdgeInsets
-}
-
-// MARK: - Layout Calculator
-private enum LayoutCalculator {
-  static func cellSize(for config: GalleryConfiguration, in collectionView: UICollectionView)
-    -> CGSize
-  {
-    let horizontalPadding = config.padding.left + config.padding.right
-    let totalSpacing = CGFloat(max(config.columns - 1, 0)) * config.spacing
-    let usableWidth = collectionView.bounds.width - totalSpacing - horizontalPadding
-
-    let cellWidth =
-      config.columns == 1 ? floor(usableWidth) : floor(usableWidth / CGFloat(config.columns))
-    let cellHeight = floor(cellWidth / config.imageAspectRatio)
-    return CGSize(width: cellWidth, height: cellHeight)
   }
 }
 
@@ -322,5 +263,40 @@ extension GalleryGridView: UICollectionViewDelegate {
     }
     gestureEventDelegate?.galleryGrid(self, didPressCell: pressedCell)
 
+  }
+}
+
+// MARK: - Gestures
+extension GalleryGridView {
+  func setThumbnailPressAction(_ action: String) {
+    switch action {
+    case "select":
+      thumbnailPressAction = .select
+    case "open":
+      thumbnailPressAction = .open
+    case "preview":
+      thumbnailPressAction = .preview
+    case "none":
+      thumbnailPressAction = .none
+    default:
+      thumbnailPressAction = .open
+    }
+    updateLayout(animated: false)
+  }
+
+  func setThumbnailLongPressAction(_ action: String) {
+    switch action {
+    case "select":
+      thumbnailLongPressAction = .select
+    case "open":
+      thumbnailLongPressAction = .open
+    case "preview":
+      thumbnailLongPressAction = .preview
+    case "none":
+      thumbnailLongPressAction = .none
+    default:
+      thumbnailLongPressAction = .select
+    }
+    updateLayout(animated: false)
   }
 }

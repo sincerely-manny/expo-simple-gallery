@@ -125,7 +125,7 @@ export default function ExpoSimpleGalleryView({
 
   const handleOverlayPreloadRequest = useCallback(
     (event: NativeSyntheticEvent<{ range: [number, number] }>) => {
-      // console.log('handleOverlayPreloadRequest', event.nativeEvent.range);
+      console.log('handleOverlayPreloadRequest', event.nativeEvent.range);
       const [start, end] = event.nativeEvent.range;
       setVisibleRange([start, end]);
       onOverlayPreloadRequested?.(event);

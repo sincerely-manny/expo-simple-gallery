@@ -61,38 +61,7 @@ final class ExpoSimpleGalleryView: ExpoView {
             label.starts(with: "GalleryViewOverlay_"),
             let id = Int(label.replacingOccurrences(of: "GalleryViewOverlay_", with: ""))
     else { return }
-    
     overlays.removeValue(forKey: id)
-//    DispatchQueue.main.async { [weak self] in
-//      guard let self else { return }
-//
-//      guard let label = childComponentView.accessibilityLabel,
-//        label.starts(with: "GalleryViewOverlay_"),
-//        let id = Int(label.replacingOccurrences(of: "GalleryViewOverlay_", with: ""))
-//      else {
-//        self.callSuperUnmountChildComponentView(childComponentView, index: index)
-//        return
-//      }
-//      let component = ReactMountingComponent(view: childComponentView, index: index)
-////      let cell = self.galleryView?.cell(withIndex: id)
-////      self.overlays.removeValue(forKey: id)
-//
-////      if let cell {
-//        self.unmount(overlay: component)
-////      }
-//    }
-//    //DispatchQueue.main.async {
-//    //  if let superview = childComponentView.superview {
-//    //    let realIndex = superview.subviews.firstIndex(where: { $0 == childComponentView }) ?? 0
-//
-//    //    if let expoSuperView = superview as? ExpoView {
-//    //      expoSuperView.unmountChildComponentView(childComponentView, index: realIndex)
-//    //    } else {
-//    //      childComponentView.removeFromSuperview()
-//    //    }
-//    //  }
-//    //}
-
   }
 
   deinit {
@@ -139,8 +108,6 @@ extension ExpoSimpleGalleryView: OverlayMountingDelegate {
   }
 
   func unmount(from cell: GalleryCell) {
-    //guard let cellIndex = cell.cellIndex else { return }
-    //guard let component = overlays[cellIndex] else { return }
     let components = cell.overlayContainer.subviews
     for (index, component) in components.enumerated() {
       unmount(overlay: ReactMountingComponent(view: component, index: index))
@@ -149,21 +116,6 @@ extension ExpoSimpleGalleryView: OverlayMountingDelegate {
 
   func unmount(overlay: ReactMountingComponent) {
     overlay.view.removeFromSuperview()
-//    DispatchQueue.main.async {
-    //    print("unmounting overlay")
-//      if let superview = overlay.view.reactSuperview() ?? overlay.view.superview {
-//        print("supreview:", superview)
-//        let index = superview.subviews.firstIndex(where: { $0 == overlay.view }) ?? 0
-//
-//        if let expoSuperView = superview as? ExpoView {
-//          expoSuperView.unmountChildComponentView(overlay.view, index: index)
-//        } else {
-//          overlay.view.removeFromSuperview()
-//        }
-//      } else {
-//        print("overlay view has no superview")
-//      }
-//    }
   }
 
   func getMountedOverlayComponent(for cell: GalleryCell) -> ReactMountingComponent? {
