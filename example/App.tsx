@@ -10,8 +10,8 @@ function Checkbox({ checked }: CheckboxProps) {
   return (
     <View
       style={{
-        width: 20,
-        height: 20,
+        width: 30,
+        height: 30,
         borderRadius: 10,
         borderWidth: 2,
         borderColor: 'black',
