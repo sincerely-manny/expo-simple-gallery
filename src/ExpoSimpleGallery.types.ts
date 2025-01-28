@@ -40,6 +40,7 @@ export type ExpoSimpleGalleryViewProps = ViewProps & {
 
   thumbnailPressAction?: ThumbnailPressAction;
   thumbnailLongPressAction?: ThumbnailPressAction;
+  thumbnailPanAction?: 'select' | 'none';
 
   contentContainerStyle?: Pick<
     ViewStyle,

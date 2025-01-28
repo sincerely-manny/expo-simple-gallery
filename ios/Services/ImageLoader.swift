@@ -21,7 +21,9 @@ final class ImageLoader: ImageLoaderProtocol {
     previewCache.totalCostLimit = 1024 * 1024 * 50
   }
 
-  func loadImage(url: URL, targetSize: CGSize, completion: @escaping (UIImage?) -> Void) -> Cancellable {
+  func loadImage(url: URL, targetSize: CGSize, completion: @escaping (UIImage?) -> Void)
+    -> Cancellable
+  {
     // Check preview cache first
     if let cachedPreview = previewCache.object(forKey: url as NSURL) {
       // Deliver cached preview immediately
@@ -109,7 +111,8 @@ final class ImageLoader: ImageLoaderProtocol {
     completion: @escaping (UIImage?) -> Void
   ) {
     let assetID = url.absoluteString.replacingOccurrences(of: "ph://", with: "")
-    guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil).firstObject else {
+    guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil).firstObject
+    else {
       completion(nil)
       return
     }
@@ -123,7 +126,7 @@ final class ImageLoader: ImageLoaderProtocol {
     if #available(iOS 17, *) {
       options.allowSecondaryDegradedImage = true
       options.deliveryMode = .highQualityFormat
-      options.resizeMode = .exact
+      //options.resizeMode = .exact
     }
 
     let scale = UIScreen.main.scale

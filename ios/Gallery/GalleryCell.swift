@@ -12,9 +12,6 @@ final class GalleryCell: UICollectionViewCell {
   private var imageLoader: ImageLoaderProtocol
   private var currentImageURL: URL?
 
-  private var thumbnailPressAction: ThumbnailPressAction = .open
-  private var thumbnailLongPressAction: ThumbnailPressAction = .select
-
   override init(frame: CGRect) {
     imageLoader = ImageLoader()
     overlayContainer = ExpoView(frame: frame)

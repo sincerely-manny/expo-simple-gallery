@@ -4,7 +4,9 @@ public class ExpoSimpleGalleryModule: Module {
   public func definition() -> ModuleDefinition {
     Name("ExpoSimpleGallery")
     View(ExpoSimpleGalleryView.self) {
-      Events("onThumbnailPress", "onThumbnailLongPress", "onSelectionChange", "onOverlayPreloadRequested")
+      Events(
+        "onThumbnailPress", "onThumbnailLongPress", "onSelectionChange", "onOverlayPreloadRequested"
+      )
 
       Prop("assets") { (view: ExpoSimpleGalleryView, assets: [String]) in
         view.galleryView?.setAssets(assets)
@@ -28,7 +30,15 @@ public class ExpoSimpleGalleryModule: Module {
       Prop("onThumbnailLongPress") { (view: ExpoSimpleGalleryView, action: String) in
         view.galleryView?.setThumbnailLongPressAction(action)
       }
-
+      Prop("thumbnailPressAction") { (view: ExpoSimpleGalleryView, action: String) in
+        view.galleryView?.setThumbnailPressAction(action)
+      }
+      Prop("thumbnailLongPressAction") { (view: ExpoSimpleGalleryView, action: String) in
+        view.galleryView?.setThumbnailLongPressAction(action)
+      }
+      Prop("thumbnailPanAction") { (view: ExpoSimpleGalleryView, action: String) in
+        view.galleryView?.setThumbnailPanAction(action)
+      }
     }
   }
 }
