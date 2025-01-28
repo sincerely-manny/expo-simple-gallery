@@ -14,3 +14,5 @@ struct GalleryConfiguration {
 }
 
 enum ThumbnailPressAction { case select, open, preview, none }
+
+class HorizontalPanGestureRecognizer: UIPanGestureRecognizer {}

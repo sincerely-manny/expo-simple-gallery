@@ -60,6 +60,8 @@ const MemoizedOverlayComponent = memo(
   //   prevProps.uri === nextProps.uri && prevProps.index === nextProps.index
 );
 
+const OVERLAYS_BUFFER = 10;
+
 export default function ExpoSimpleGalleryView({
   thumbnailOverlayComponent: OverlayComponent,
   assets,
@@ -125,7 +127,7 @@ export default function ExpoSimpleGalleryView({
 
   const handleOverlayPreloadRequest = useCallback(
     (event: NativeSyntheticEvent<{ range: [number, number] }>) => {
-      console.log('handleOverlayPreloadRequest', event.nativeEvent.range);
+      // console.log('handleOverlayPreloadRequest', event.nativeEvent.range);
       const [start, end] = event.nativeEvent.range;
       setVisibleRange([start, end]);
       onOverlayPreloadRequested?.(event);
@@ -142,7 +144,6 @@ export default function ExpoSimpleGalleryView({
       onSelectionChange={handleSelectionChange}
       onOverlayPreloadRequested={handleOverlayPreloadRequest}
     >
-      {/* {overlaysToRender} */}
       {/* @ts-expect-error type of children is intentionally set to never | undefined */}
       {assets.map((uri, index) =>
         OverlayComponent ? (
@@ -155,7 +156,10 @@ export default function ExpoSimpleGalleryView({
             height={thumbnailHeight}
             selected={selectedUris.has(uri)}
             isNull={
-              !(index >= visibleRangeMin - 30 && index <= visibleRangeMax + 30)
+              !(
+                index >= visibleRangeMin - OVERLAYS_BUFFER &&
+                index <= visibleRangeMax + OVERLAYS_BUFFER
+              )
             }
             // isNull={false}
           />

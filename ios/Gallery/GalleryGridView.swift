@@ -1,22 +1,5 @@
 import React
 
-class CustomLayout: UICollectionViewFlowLayout {
-  private let prefetchBuffer: CGFloat = 100  // The buffer to increase the range before invalidating the layout
-
-  override func shouldInvalidateLayout(forBoundsChange newBounds: CGRect) -> Bool {
-    // Get the current collection view bounds and content offset
-    guard let collectionView = collectionView else { return false }
-
-    // Check if the collection view has scrolled past the threshold (increase prefetching range)
-    if collectionView.contentOffset.y < -prefetchBuffer {
-      return true  // Invalidate layout and adjust the range
-    }
-
-    // Otherwise, don't invalidate the layout
-    return super.shouldInvalidateLayout(forBoundsChange: newBounds)
-  }
-}
-
 // MARK: Main View
 final class GalleryGridView: UICollectionView {
   private var configuration = GalleryConfiguration()
@@ -49,6 +32,7 @@ final class GalleryGridView: UICollectionView {
     self.overlayPreloadingDelegate = overlayPreloadingDelegate
     self.overlayMountingDelegate = overlayMountingDelegate
     setupView()
+    setupGestures()
   }
 
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -222,15 +206,6 @@ extension GalleryGridView: UICollectionViewDataSource {
       with: uri, index: indexPath.item, withOverlayMountingDelegate: overlayMountingDelegate)
     cell.applyStyle(configuration: configuration)
   }
-
-//  func collectionView(
-//    _ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell,
-//    forItemAt indexPath: IndexPath
-//  ) {
-//    if let galleryCell = cell as? GalleryCell {
-////      overlayMountingDelegate?.unmount(from: galleryCell)
-//    }
-//  }
 }
 
 // MARK: - Layout Delegate
@@ -300,3 +275,80 @@ extension GalleryGridView {
     updateLayout(animated: false)
   }
 }
+
+extension GalleryGridView {
+  func setupGestures() {
+    let longPressGesture = UILongPressGestureRecognizer(
+      target: self, action: #selector(handleLongPress(_:)))
+    longPressGesture.minimumPressDuration = 0.5
+    addGestureRecognizer(longPressGesture)
+
+    let horizontalPan = HorizontalPanGestureRecognizer(
+      target: self, action: #selector(handlePanGesture(_:)))
+    horizontalPan.delegate = self
+    addGestureRecognizer(horizontalPan)
+  }
+
+  @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+    guard gesture.state == .began else { return }
+    let location = gesture.location(in: self)
+    guard let indexPath = indexPathForItem(at: location),
+      let cell = cellForItem(at: indexPath) as? GalleryCell,
+      let cellIndex = cell.cellIndex,
+      let cellUri = cell.cellUri
+    else {
+      return
+    }
+
+    print("Long press detected on cell: \(cellIndex)")
+  }
+
+  @objc private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
+    let location = gesture.location(in: self)
+
+    switch gesture.state {
+    case .began:
+      print("Pan began")
+
+    case .changed:
+      if let indexPath = indexPathForItem(at: location),
+        let cell = cellForItem(at: indexPath) as? GalleryCell,
+        let cellIndex = cell.cellIndex
+      {
+        print("New cell visited during pan: \(cellIndex)")
+      }
+
+    case .ended:
+      print("Pan ended")
+
+    default:
+      break
+    }
+  }
+}
+
+extension GalleryGridView: UIGestureRecognizerDelegate {
+  override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+    if let panGesture = gestureRecognizer as? HorizontalPanGestureRecognizer {
+      let velocity = panGesture.velocity(in: self)
+      return abs(velocity.x) > abs(velocity.y) * 2.0
+    }
+    return true
+  }
+
+  func gestureRecognizer(
+    _ gestureRecognizer: UIGestureRecognizer,
+    shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+  ) -> Bool {
+    // Don't allow simultaneous recognition between horizontal pan and scroll
+    if (gestureRecognizer is HorizontalPanGestureRecognizer && otherGestureRecognizer == panGestureRecognizer)
+      || (otherGestureRecognizer is HorizontalPanGestureRecognizer && gestureRecognizer == panGestureRecognizer)
+    {
+      return false
+    }
+    return true
+  }
+
+}
+
+
