@@ -6,14 +6,14 @@ extension GalleryGridView {
       thumbnailPressAction = .select
     case "open":
       thumbnailPressAction = .open
-    case "preview":
-      thumbnailPressAction = .preview
+    //case "preview":
+    //  thumbnailPressAction = .preview
     case "none":
       thumbnailPressAction = .none
     default:
       thumbnailPressAction = .open
     }
-    updateLayout(animated: false)
+    //updateLayout(animated: false)
   }
 
   func setThumbnailLongPressAction(_ action: String) {
@@ -29,7 +29,7 @@ extension GalleryGridView {
     default:
       thumbnailLongPressAction = .select
     }
-    updateLayout(animated: false)
+    //updateLayout(animated: false)
   }
 
   func setThumbnailPanAction(_ action: String) {
@@ -41,11 +41,12 @@ extension GalleryGridView {
     default:
       thumbnailPanAction = .none
     }
-    updateLayout(animated: false)
+    //updateLayout(animated: false)
   }
 }
 
 extension GalleryGridView: UICollectionViewDelegate {
+  // Handle tap selection
   func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
     guard let cell = collectionView.cellForItem(at: indexPath) as? GalleryCell,
       let cellIndex = cell.cellIndex,
@@ -67,7 +68,83 @@ extension GalleryGridView: UICollectionViewDelegate {
       self,
       didPressCell: PressedCell(index: cellIndex, uri: cellUri)
     )
+  }
 
+  // Context menu configuration (long press)
+  func collectionView(
+    _ collectionView: UICollectionView,
+    contextMenuConfigurationForItemAt indexPath: IndexPath,
+    point: CGPoint
+  ) -> UIContextMenuConfiguration? {
+    if thumbnailLongPressAction != .preview { return nil }
+
+    guard let cell = cellForItem(at: indexPath) as? GalleryCell,
+      let urlString = cell.cellUri,
+      let url = URL(string: urlString)
+    else { return nil }
+
+    return UIContextMenuConfiguration(
+      identifier: indexPath as NSCopying,
+      previewProvider: {
+        PreviewViewController(imageUrl: url)
+      },
+      actionProvider: { _ in
+        let action1 = UIAction(
+          title: "Option 1",
+          image: UIImage(systemName: "car.front.waves.left.and.right.and.up.fill"),
+          attributes: [.destructive]
+        ) { _ in
+          print("Option 1 selected")
+        }
+        return UIMenu(title: "Actions", children: [action1])
+      }
+    )
+  }
+
+  // Preview animation customization
+  func collectionView(
+    _ collectionView: UICollectionView,
+    previewForHighlightingContextMenuWithConfiguration configuration: UIContextMenuConfiguration
+  ) -> UITargetedPreview? {
+    guard let indexPath = configuration.identifier as? IndexPath,
+      let cell = collectionView.cellForItem(at: indexPath) as? GalleryCell
+    else { return nil }
+
+    let parameters = UIPreviewParameters()
+    parameters.backgroundColor = .clear
+    parameters.visiblePath = UIBezierPath(roundedRect: cell.bounds, cornerRadius: self.configuration.borderRadius)
+
+    return UITargetedPreview(
+      view: cell,
+      parameters: parameters
+    )
+  }
+
+  // Dismissal animation customization
+  func collectionView(
+    _ collectionView: UICollectionView,
+    previewForDismissingContextMenuWithConfiguration configuration: UIContextMenuConfiguration
+  ) -> UITargetedPreview? {
+    guard let indexPath = configuration.identifier as? IndexPath,
+      let cell = collectionView.cellForItem(at: indexPath) as? GalleryCell
+    else { return nil }
+
+    let parameters = UIPreviewParameters()
+    parameters.backgroundColor = .clear
+    parameters.visiblePath = UIBezierPath(roundedRect: cell.bounds, cornerRadius: self.configuration.borderRadius)
+
+    return UITargetedPreview(
+      view: cell,
+      parameters: parameters
+    )
+  }
+
+  // Optional: Handle context menu dismissal
+  func collectionView(
+    _ collectionView: UICollectionView,
+    didEndContextMenuInteractionForItemAt indexPath: IndexPath
+  ) {
+    print("Context menu dismissed for item at \(indexPath)")
   }
 }
 
@@ -94,6 +171,13 @@ extension GalleryGridView {
   }
 
   @objc private func handlePreLongPress(_ gesture: UILongPressGestureRecognizer) {
+    switch thumbnailLongPressAction {
+    case .select, .open:
+      break
+    default:
+      return
+    }
+
     let location = gesture.location(in: self)
     guard let indexPath = indexPathForItem(at: location),
       let cell = cellForItem(at: indexPath) as? GalleryCell
@@ -101,7 +185,7 @@ extension GalleryGridView {
 
     switch gesture.state {
     case .began:
-      UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut]) {
+      UIView.animate(withDuration: 0.2, delay: 0.1, options: [.curveEaseInOut]) {
         cell.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
       }
     default:
@@ -112,6 +196,13 @@ extension GalleryGridView {
   }
 
   @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+    switch thumbnailLongPressAction {
+    case .select, .open:
+      break
+    default:
+      return
+    }
+
     let location = gesture.location(in: self)
     guard let indexPath = indexPathForItem(at: location),
       let cell = cellForItem(at: indexPath) as? GalleryCell
@@ -138,9 +229,9 @@ extension GalleryGridView {
       handleSelect(cell: cell)
     case .open:
       handleOpen(cell: cell)
-    case .preview:
-      handlePreview(cell: cell)
-    case .none:
+    //case .preview:
+    //  handlePreview(cell: cell)
+    case .preview, .none:
       break
     }
   }

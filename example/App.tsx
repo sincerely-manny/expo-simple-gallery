@@ -67,6 +67,7 @@ export default function App() {
           console.log('onThumbnailLongPress', event.nativeEvent);
         }}
         thumbnailPressAction="select"
+        thumbnailLongPressAction="preview"
         thumbnailPanAction="select"
       />
     </SafeAreaView>

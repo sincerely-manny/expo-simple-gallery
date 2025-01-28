@@ -38,8 +38,8 @@ export type ExpoSimpleGalleryViewProps = ViewProps & {
   >;
   thumbnailOverlayComponent?: ThumbnailOverlayComponent;
 
-  thumbnailPressAction?: ThumbnailPressAction;
-  thumbnailLongPressAction?: ThumbnailPressAction;
+  thumbnailPressAction?: 'select' | 'open' | 'none';
+  thumbnailLongPressAction?: 'select' | 'open' | 'preview' | 'none';
   thumbnailPanAction?: 'select' | 'none';
 
   contentContainerStyle?: Pick<
