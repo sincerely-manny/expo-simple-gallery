@@ -73,9 +73,18 @@ extension GalleryGridView: UICollectionViewDelegate {
 
 extension GalleryGridView {
   func setupGestures() {
+    let preLongPressGesture = UILongPressGestureRecognizer(
+      target: self, action: #selector(handlePreLongPress(_:)))
+    addGestureRecognizer(preLongPressGesture)
+    preLongPressGesture.minimumPressDuration = 0.2
+    preLongPressGesture.cancelsTouchesInView = false
+    preLongPressGesture.delegate = self
+    addGestureRecognizer(preLongPressGesture)
+
     let longPressGesture = UILongPressGestureRecognizer(
       target: self, action: #selector(handleLongPress(_:)))
     longPressGesture.minimumPressDuration = 0.5
+    preLongPressGesture.delegate = self
     addGestureRecognizer(longPressGesture)
 
     let horizontalPan = HorizontalPanGestureRecognizer(
@@ -84,13 +93,46 @@ extension GalleryGridView {
     addGestureRecognizer(horizontalPan)
   }
 
-  @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-    guard gesture.state == .began else { return }
+  @objc private func handlePreLongPress(_ gesture: UILongPressGestureRecognizer) {
     let location = gesture.location(in: self)
     guard let indexPath = indexPathForItem(at: location),
       let cell = cellForItem(at: indexPath) as? GalleryCell
     else { return }
 
+    switch gesture.state {
+    case .began:
+      UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut]) {
+        cell.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+      }
+    default:
+      UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseInOut]) {
+        cell.transform = .identity
+      }
+    }
+  }
+
+  @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+    let location = gesture.location(in: self)
+    guard let indexPath = indexPathForItem(at: location),
+      let cell = cellForItem(at: indexPath) as? GalleryCell
+    else { return }
+
+    switch gesture.state {
+    case .began:
+      UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseInOut]) {
+        if self.thumbnailLongPressAction == .select {
+          cell.transform = .identity
+        } else {
+          cell.transform = CGAffineTransform(scaleX: 1.1, y: 1.1)
+        }
+      }
+    default:
+      UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseInOut]) {
+        cell.transform = .identity
+      }
+    }
+
+    guard gesture.state == .began else { return }
     switch thumbnailLongPressAction {
     case .select:
       handleSelect(cell: cell)
@@ -123,8 +165,6 @@ extension GalleryGridView {
       handleSelect(cell: cell, newState: !firstVisitedCellWasSelected)
     case .changed:
       handleSelect(cell: cell, newState: !firstVisitedCellWasSelected)
-    //case .ended:
-    //  print("Pan ended")
     default:
       break
     }
@@ -175,6 +215,13 @@ extension GalleryGridView: UIGestureRecognizerDelegate {
     _ gestureRecognizer: UIGestureRecognizer,
     shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
   ) -> Bool {
+    if gestureRecognizer is UILongPressGestureRecognizer {
+      if otherGestureRecognizer is UILongPressGestureRecognizer {
+        return true
+      } else {
+        return false
+      }
+    }
     // Don't allow simultaneous recognition between horizontal pan and scroll
     if (gestureRecognizer is HorizontalPanGestureRecognizer
       && otherGestureRecognizer == panGestureRecognizer)

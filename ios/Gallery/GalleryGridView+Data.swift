@@ -30,10 +30,10 @@ extension GalleryGridView: UICollectionViewDataSource {
   }
 
   func collectionView(
-    _ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath
+    _ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell,
+    forItemAt indexPath: IndexPath
   ) {
     if let cell = cell as? GalleryCell {
-      print("willdisplay: ", cell.cellIndex)
       overlayMountingDelegate?.mount(to: cell)
     }
   }
