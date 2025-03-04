@@ -8,6 +8,11 @@ extension GalleryGridView {
     delegate = self
     prefetchDataSource = self
     register(GalleryCell.self, forCellWithReuseIdentifier: GalleryCell.identifier)
+    register(
+      GallerySectionHeaderView.self,
+      forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
+      withReuseIdentifier: GallerySectionHeaderView.identifier
+    )
   }
 
   func updateLayout(animated: Bool) {
@@ -15,7 +20,8 @@ extension GalleryGridView {
 
     flowLayout.minimumInteritemSpacing = configuration.spacing
     flowLayout.minimumLineSpacing = configuration.spacing
-    flowLayout.sectionInset = configuration.padding
+    flowLayout.sectionInset = configuration.sectionInsets
+    self.contentInset = configuration.padding
     flowLayout.invalidationContext(forBoundsChange: .zero)
 
     performLayoutUpdate(animated: animated)
@@ -29,25 +35,74 @@ extension GalleryGridView {
 
 // MARK: - Public Methods
 extension GalleryGridView {
-  func setAssets(_ assets: [String]) {
-    uris = assets
+  func setAssets(uris: [String]) {
+    self.uris = uris
+    self.isGroupedLayout = false
+    self.sectionData = []
+
+    if let flowLayout = collectionViewLayout as? UICollectionViewFlowLayout {
+      flowLayout.headerReferenceSize = .zero
+    }
+
     reloadData()
 
-    if !assets.isEmpty {
+    if !uris.isEmpty {
       let visibleItems = indexPathsForVisibleItems.map { $0.item }
       if let minItem = visibleItems.min(), let maxItem = visibleItems.max() {
         let range = (minItem, maxItem)
         overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: range)
       } else {
-        let initialRange = (0, min(assets.count - 1, 30))
+        let initialRange = (0, min(uris.count - 1, 30))
+        overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: initialRange)
+      }
+    }
+  }
+
+  func setAssets(uris: [String], sectionData: [[String: Int]]) {
+    self.uris = uris
+    self.sectionData = sectionData
+    self.isGroupedLayout = true
+
+    // Update header size
+    updateSectionHeaderSize()
+
+    reloadData()
+
+    if !uris.isEmpty {
+      let visibleIndexPaths = indexPathsForVisibleItems
+      let flatIndices = visibleIndexPaths.compactMap { indexPath -> Int? in
+        // Find the corresponding flat index for this indexPath
+        sectionData.firstIndex { dict in
+          dict["sectionIndex"] == indexPath.section && dict["itemIndex"] == indexPath.item
+        }
+      }
+
+      if let minItem = flatIndices.min(), let maxItem = flatIndices.max() {
+        let range = (minItem, maxItem)
+        overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: range)
+      } else {
+        let initialRange = (0, min(uris.count - 1, 30))
         overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: initialRange)
       }
     }
   }
 
   func cell(withIndex index: Int) -> GalleryCell? {
-    let indexPath = IndexPath(item: index, section: 0)
-    return cellForItem(at: indexPath) as? GalleryCell
+    if isGroupedLayout {
+      guard index < uris.count, index < sectionData.count else { return nil }
+
+      if let sectionIndex = sectionData[index]["sectionIndex"],
+        let itemIndex = sectionData[index]["itemIndex"]
+      {
+
+        let indexPath = IndexPath(item: itemIndex, section: sectionIndex)
+        return cellForItem(at: indexPath) as? GalleryCell
+      }
+      return nil
+    } else {
+      let indexPath = IndexPath(item: index, section: 0)
+      return cellForItem(at: indexPath) as? GalleryCell
+    }
   }
 
   func visibleCells() -> [GalleryCell] {
@@ -74,7 +129,7 @@ extension GalleryGridView {
 // MARK: - Style Configuration
 extension GalleryGridView {
   func setThumbnailStyle(_ style: [String: Any]) {
-    if let aspectRatio = (style["aspectRatio"] as? Double) ?? Optional(Double(0)) {
+    if let aspectRatio = (style["aspectRatio"] as? Double) ?? Optional(Double(1)) {
       configuration.imageAspectRatio = CGFloat(aspectRatio)
     }
     if let borderRadius = style["borderRadius"] as? Double ?? Optional(Double(0)) {
@@ -93,38 +148,100 @@ extension GalleryGridView {
   }
 
   func setContentContainerStyle(_ style: [String: Any], animated: Bool = true) {
-    var insets = UIEdgeInsets.zero
+    var sectionInsets = UIEdgeInsets.zero
+    var containerInsets = UIEdgeInsets.zero
+
     if let all = style["padding"] as? Double {
-      insets = UIEdgeInsets(
-        top: CGFloat(all),
+      sectionInsets = UIEdgeInsets(
+        top: CGFloat(0),
         left: CGFloat(all),
-        bottom: CGFloat(all),
+        bottom: CGFloat(0),
         right: CGFloat(all)
+      )
+
+      containerInsets = UIEdgeInsets(
+        top: CGFloat(all),
+        left: CGFloat(0),
+        bottom: CGFloat(all),
+        right: CGFloat(0)
       )
     }
     if let vertical = style["paddingVertical"] as? Double {
-      insets.top = CGFloat(vertical)
-      insets.bottom = CGFloat(vertical)
+      containerInsets.top = CGFloat(vertical)
+      containerInsets.bottom = CGFloat(vertical)
     }
     if let horizontal = style["paddingHorizontal"] as? Double {
-      insets.left = CGFloat(horizontal)
-      insets.right = CGFloat(horizontal)
+      sectionInsets.left = CGFloat(horizontal)
+      sectionInsets.right = CGFloat(horizontal)
     }
 
     if let top = style["paddingTop"] as? Double {
-      insets.top = CGFloat(top)
+      containerInsets.top = CGFloat(top)
     }
     if let left = style["paddingLeft"] as? Double {
-      insets.left = CGFloat(left)
+      sectionInsets.left = CGFloat(left)
     }
     if let bottom = style["paddingBottom"] as? Double {
-      insets.bottom = CGFloat(bottom)
+      containerInsets.bottom = CGFloat(bottom)
     }
     if let right = style["paddingRight"] as? Double {
-      insets.right = CGFloat(right)
+      sectionInsets.right = CGFloat(right)
+    }
+    if let gap = style["gap"] as? Double ?? Optional(Double(0)) {
+      setSpacing(CGFloat(gap))
     }
 
-    configuration.padding = insets
+    configuration.padding = containerInsets
+    configuration.sectionInsets = sectionInsets
     updateLayout(animated: animated)
+  }
+
+  func setSectionHeaderStyle(_ style: [String: Any]) {
+    if let height = style["height"] as? Double {
+      configuration.sectionHeaderHeight = CGFloat(height)
+      updateSectionHeaderSize()
+    }
+  }
+
+  func setContextmenuOptions(_ options: [Any]) {
+    contextMenuOptions = { cellIndex, cellUri in
+      options.enumerated().compactMap { index, option in
+        if let dict = option as? [String: Any],
+          let title = dict["title"] as? String
+        {
+          let imageName = dict["sfSymbol"] as? String
+          let image = UIImage(systemName: imageName ?? "")
+          let attributeNames = dict["attributes"] as? [String] ?? []
+          let attributes = attributeNames.reduce(into: UIMenuElement.Attributes()) { result, attr in
+            switch attr {
+            case "disabled":
+              result.insert(.disabled)
+            case "destructive":
+              result.insert(.destructive)
+            case "hidden":
+              result.insert(.hidden)
+            default:
+              break
+            }
+          }
+
+          let state: UIMenuElement.State = {
+            switch dict["state"] as? String {
+            case "on": return .on
+            case "off": return .off
+            case "mixed": return .mixed
+            default: return .off
+            }
+          }()
+
+          return UIAction(title: title, image: image, attributes: attributes, state: state) { [weak self] _ in
+            self?.contextMenuActionsDelegate?.onPreviewMenuOptionSelected([
+              "optionIndex": index, "index": cellIndex, "uri": cellUri,
+            ])
+          }
+        }
+        return nil
+      }
+    }
   }
 }

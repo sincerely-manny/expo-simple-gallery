@@ -1,21 +1,28 @@
 import ExpoModulesCore
+import React
 import UIKit
 
-final class ExpoSimpleGalleryView: ExpoView {
+final class ExpoSimpleGalleryView: ExpoView, ContextMenuActionsDelegate {
   var galleryView: GalleryGridView?
-  private var overlays: [Int: ReactMountingComponent] = [:]
+  private var overlays: [String: [Int: ReactMountingComponent]] = [
+    "thumbnail": [:],
+    "sectionHeader": [:],
+  ]
 
   let onOverlayPreloadRequested = EventDispatcher()
   let onThumbnailPress = EventDispatcher()
   let onThumbnailLongPress = EventDispatcher()
   let onSelectionChange = EventDispatcher()
+  let onSectionHeadersVisible = EventDispatcher()
+  let onPreviewMenuOptionSelected = EventDispatcher()
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     galleryView = GalleryGridView(
       gestureEventDelegate: self,
       overlayPreloadingDelegate: self,
-      overlayMountingDelegate: self
+      overlayMountingDelegate: self,
+      contextMenuActionsDelegate: self
     )
     clipsToBounds = true
     guard let galleryView else { return }
@@ -35,38 +42,68 @@ final class ExpoSimpleGalleryView: ExpoView {
   override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
     DispatchQueue.main.async { [weak self] in
       guard let self else { return }
-
       guard childComponentView.superview == nil else { return }
-      guard let label = childComponentView.accessibilityLabel,
-        label.starts(with: "GalleryViewOverlay_"),
-        let id = Int(label.replacingOccurrences(of: "GalleryViewOverlay_", with: ""))
-      else {
+      guard let label = childComponentView.accessibilityLabel else {
         self.callSuperMountChildComponentView(childComponentView, index: index)
         return
       }
 
-      let component = ReactMountingComponent(view: childComponentView, index: index)
-      let cell = self.galleryView?.cell(withIndex: id)
-      self.overlays[id] = component
+      if label.starts(with: "GalleryViewOverlay_") {
+        guard let id = Int(label.replacingOccurrences(of: "GalleryViewOverlay_", with: "")) else { return }
+        let component = ReactMountingComponent(view: childComponentView, index: index)
+        self.overlays["thumbnail"]?[id] = component
 
-      if let cell {
-        self.mount(to: cell, overlay: component)
+        if let cell = self.galleryView?.cell(withIndex: id) {
+          self.mount(to: cell, overlay: component)
+        }
+      } else if label.starts(with: "SectionHeaderOverlay_") {
+        guard let sectionId = Int(label.replacingOccurrences(of: "SectionHeaderOverlay_", with: "")) else { return }
+        let component = ReactMountingComponent(view: childComponentView, index: index)
+        self.overlays["sectionHeader"]?[sectionId] = component
+
+        if let galleryView = self.galleryView, galleryView.isGroupedLayout {
+          let indexPath = IndexPath(item: 0, section: sectionId)
+          if let headerView = galleryView.supplementaryView(
+            forElementKind: UICollectionView.elementKindSectionHeader,
+            at: indexPath) as? GallerySectionHeaderView
+          {
+            self.mount(to: headerView, overlay: component)
+          }
+        }
       }
     }
   }
 
   override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
-    self.unmount(overlay: ReactMountingComponent(view: childComponentView, index: index))
-    guard let label = childComponentView.accessibilityLabel,
-            label.starts(with: "GalleryViewOverlay_"),
-            let id = Int(label.replacingOccurrences(of: "GalleryViewOverlay_", with: ""))
-    else { return }
-    overlays.removeValue(forKey: id)
+    let component = ReactMountingComponent(view: childComponentView, index: index)
+    self.unmount(overlay: component)
+    guard let label = childComponentView.accessibilityLabel else { return }
+
+    if label.starts(with: "GalleryViewOverlay_") {
+      guard let id = Int(label.replacingOccurrences(of: "GalleryViewOverlay_", with: "")) else { return }
+      overlays["thumbnail"]?[id] = nil
+    } else if label.starts(with: "SectionHeaderOverlay_") {
+      guard let sectionId = Int(label.replacingOccurrences(of: "SectionHeaderOverlay_", with: "")) else { return }
+      overlays["sectionHeader"]?[sectionId] = nil
+    }
   }
 
   deinit {
+    // Clean up all visible containers
     galleryView?.visibleCells().forEach { cell in
       unmount(from: cell)
+    }
+
+    if let galleryView = galleryView, galleryView.isGroupedLayout {
+      for section in 0..<galleryView.numberOfSections {
+        let indexPath = IndexPath(item: 0, section: section)
+        if let headerView = galleryView.supplementaryView(
+          forElementKind: UICollectionView.elementKindSectionHeader,
+          at: indexPath) as? GallerySectionHeaderView
+        {
+          unmount(from: headerView)
+        }
+      }
     }
   }
 }
@@ -89,26 +126,43 @@ extension ExpoSimpleGalleryView: OverlayPreloadingDelegate {
   func galleryGrid(_ gallery: GalleryGridView, prefetchOverlaysFor range: (Int, Int)) {
     onOverlayPreloadRequested(["range": [range.0, range.1]])
   }
+
+  func galleryGrid(_ gallery: GalleryGridView, sectionsVisible sections: [Int]) {
+    if !sections.isEmpty {
+      onSectionHeadersVisible(["sections": sections])
+    }
+  }
 }
 
+// MARK: - Overlay Mounting Implementation
 extension ExpoSimpleGalleryView: OverlayMountingDelegate {
-  func mount(to cell: GalleryCell) {
-    guard let cellIndex = cell.cellIndex else { return }
-    guard let component = overlays[cellIndex] else { return }
-    mount(to: cell, overlay: component)
+  func mount<T: OverlayContainer>(to container: T) {
+    guard let containerId = container.containerIdentifier else { return }
+    var component: ReactMountingComponent?
+    if container is GalleryCell {
+      component = overlays["thumbnail"]?[containerId]
+    } else if container is GallerySectionHeaderView {
+      component = overlays["sectionHeader"]?[containerId]
+    }
+
+    if let component = component {
+      mount(to: container, overlay: component)
+    }
   }
 
-  func mount(to cell: GalleryCell, overlay: ReactMountingComponent) {
+  func mount<T: OverlayContainer>(to container: T, overlay: ReactMountingComponent) {
     DispatchQueue.main.async { [weak self] in
       guard overlay.view.superview == nil else { return }
-      guard self?.getMountedOverlayComponent(for: cell)?.view != overlay.view else { return }
-      cell.overlayContainer.mountChildComponentView(overlay.view, index: overlay.index)
+      guard self?.getMountedOverlayComponent(for: container)?.view != overlay.view else { return }
+      // TODO: fix remounting after props (uris list) update
+      container.overlayContainer.mountChildComponentView(overlay.view, index: overlay.index)
+      // container.overlayContainer.addSubview(overlay.view)
       overlay.view.didMoveToSuperview()
     }
   }
 
-  func unmount(from cell: GalleryCell) {
-    let components = cell.overlayContainer.subviews
+  func unmount<T: OverlayContainer>(from container: T) {
+    let components = container.overlayContainer.subviews
     for (index, component) in components.enumerated() {
       unmount(overlay: ReactMountingComponent(view: component, index: index))
     }
@@ -118,9 +172,9 @@ extension ExpoSimpleGalleryView: OverlayMountingDelegate {
     overlay.view.removeFromSuperview()
   }
 
-  func getMountedOverlayComponent(for cell: GalleryCell) -> ReactMountingComponent? {
+  func getMountedOverlayComponent<T: OverlayContainer>(for container: T) -> ReactMountingComponent? {
     let (index, view) =
-      cell.overlayContainer.subviews.enumerated().first(where: { $0.element is ExpoView }) ?? (
+      container.overlayContainer.subviews.enumerated().first(where: { $0.element is ExpoView }) ?? (
         0, nil
       )
     if let view {

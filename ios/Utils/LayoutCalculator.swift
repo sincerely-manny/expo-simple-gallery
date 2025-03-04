@@ -1,9 +1,10 @@
 enum LayoutCalculator {
-  static func cellSize(for config: GalleryConfiguration, in collectionView: UICollectionView)
-    -> CGSize
-  {
-    let horizontalPadding = config.padding.left + config.padding.right
+  static func cellSize(for config: GalleryConfiguration, in collectionView: UICollectionView) -> CGSize {
+    // Use section inset for horizontal padding in cell calculations
+    let horizontalPadding = config.sectionInsets.left + config.sectionInsets.right
     let totalSpacing = CGFloat(max(config.columns - 1, 0)) * config.spacing
+    
+    // Calculate usable width considering section insets only (not container insets)
     let usableWidth = collectionView.bounds.width - totalSpacing - horizontalPadding
 
     let cellWidth =

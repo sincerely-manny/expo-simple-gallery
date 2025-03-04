@@ -71,7 +71,7 @@ final class ImageLoader: ImageLoaderProtocol {
     case "ph":
       handlePhotoLibraryImage(url: url, targetSize: targetSize, completion: completion)
     default:
-      print("Unsupported URI scheme:", url.scheme ?? "none")
+      print("⚠️ Unsupported URI scheme:", url.scheme ?? "none")
       completion(nil)
     }
   }

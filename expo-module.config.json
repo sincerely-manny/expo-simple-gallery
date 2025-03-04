@@ -1,17 +1,6 @@
 {
-  "platforms": [
-    "apple",
-    "android",
-    "web"
-  ],
+  "platforms": ["apple"],
   "apple": {
-    "modules": [
-      "ExpoSimpleGalleryModule"
-    ]
-  },
-  "android": {
-    "modules": [
-      "expo.modules.simplegallery.ExpoSimpleGalleryModule"
-    ]
+    "modules": ["ExpoSimpleGalleryModule", "GalleryImageViewerModule"]
   }
 }

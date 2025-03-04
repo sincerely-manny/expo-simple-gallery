@@ -96,14 +96,7 @@ extension GalleryGridView: UICollectionViewDelegate {
         PreviewViewController(imageUrl: url)
       },
       actionProvider: { _ in
-        let action1 = UIAction(
-          title: "Option 1",
-          image: UIImage(systemName: "car.front.waves.left.and.right.and.up.fill"),
-          attributes: [.destructive]
-        ) { _ in
-          print("Option 1 selected")
-        }
-        return UIMenu(title: "Actions", children: [action1])
+        return UIMenu(title: "", children: self.contextMenuOptions(cellIndex, urlString))
       }
     )
   }
@@ -153,7 +146,7 @@ extension GalleryGridView: UICollectionViewDelegate {
     _ collectionView: UICollectionView,
     didEndContextMenuInteractionForItemAt indexPath: IndexPath
   ) {
-    print("Context menu dismissed for item at \(indexPath)")
+    //    print("Context menu dismissed for item at \(indexPath)")
   }
 }
 
@@ -259,7 +252,7 @@ extension GalleryGridView {
     lastVisitedIndexPath = indexPath
     guard let indexPath = indexPath,
       let cell = cellForItem(at: indexPath) as? GalleryCell,
-      let cellIndex = cell.cellIndex,
+      cell.cellIndex != nil,
       let cellUri = cell.cellUri
     else {
       return
@@ -300,11 +293,11 @@ extension GalleryGridView {
   }
 
   private func handleOpen(cell: GalleryCell) {
-    print("Opening cell: \(cell.cellUri)")
+    // handled in JS
   }
 
   private func handlePreview(cell: GalleryCell) {
-    print("Previewing cell: \(cell.cellUri)")
+    // handled with Preview API
   }
 }
 
@@ -312,6 +305,14 @@ extension GalleryGridView: UIGestureRecognizerDelegate {
   override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
     if let panGesture = gestureRecognizer as? HorizontalPanGestureRecognizer {
       let velocity = panGesture.velocity(in: self)
+      let touchPoint = panGesture.location(in: self)
+
+      // Check for left edge swipe - don't begin our gesture if it's near the edge
+      let isNearLeftEdge = touchPoint.x < 50
+      if isNearLeftEdge && velocity.x > 0 {
+        return false
+      }
+
       return abs(velocity.x) > abs(velocity.y) * 2.0
     }
     return true
@@ -339,4 +340,21 @@ extension GalleryGridView: UIGestureRecognizerDelegate {
     return true
   }
 
+}
+
+extension GalleryGridView: ScrollableToIndexDelegate {
+  func centerOnIndex(_ index: Int) {
+    if isGroupedLayout {
+      guard index < uris.count, index < sectionData.count else { return }
+      if let sectionIndex = sectionData[index]["sectionIndex"],
+        let itemIndex = sectionData[index]["itemIndex"]
+      {
+        let indexPath = IndexPath(item: itemIndex, section: sectionIndex)
+        scrollToItem(at: indexPath, at: .centeredVertically, animated: true)
+      }
+    } else {
+      let indexPath = IndexPath(item: index, section: 0)
+      scrollToItem(at: indexPath, at: .centeredVertically, animated: true)
+    }
+  }
 }

@@ -1,7 +1,17 @@
-import { type Asset, getAssetsAsync, MediaType } from 'expo-media-library';
+import {
+  getAssetsAsync,
+  MediaType,
+  requestPermissionsAsync,
+} from 'expo-media-library';
 import { ExpoSimpleGalleryView } from 'expo-simple-gallery';
-import { useEffect, useMemo, useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 type CheckboxProps = {
   checked: boolean;
@@ -10,68 +20,67 @@ function Checkbox({ checked }: CheckboxProps) {
   return (
     <View
       style={{
-        width: 30,
-        height: 30,
+        width: 20,
+        height: 20,
         borderRadius: 10,
         borderWidth: 2,
-        borderColor: 'black',
-        backgroundColor: checked ? 'blue' : 'white',
+        borderColor: '#000000AA',
+        backgroundColor: '#FFFFFFAA',
         alignSelf: 'flex-end',
         margin: 10,
       }}
-    />
+    >
+      <Text>{checked ? '✔️' : ''}</Text>
+    </View>
   );
 }
 
 export default function App() {
-  const [assets, setAssets] = useState<Asset[]>([]);
+  const [assets, setAssets] = useState<string[]>([]);
 
   useEffect(() => {
     (async () => {
+      const { status } = await requestPermissionsAsync();
+      if (status !== 'granted') {
+        return;
+      }
       const { assets } = await getAssetsAsync({
         first: 999999,
         mediaType: [MediaType.photo, MediaType.video],
         sortBy: 'creationTime',
       });
-      setAssets(assets);
+      setAssets(assets.map(({ uri }) => uri));
     })();
   }, []);
-
-  const uris = useMemo(() => assets.map(({ uri }) => uri), [assets]);
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Module API Example</Text>
-      <ExpoSimpleGalleryView
-        columnsCount={3}
-        thumbnailsSpacing={10}
-        thumbnailStyle={{
-          borderRadius: 20,
-          // borderWidth: 4,
-          // borderColor: 'teal',
-          aspectRatio: 1,
-        }}
-        assets={uris}
-        style={styles.view}
-        thumbnailOverlayComponent={({ selected, uri, index }) => (
-          <Checkbox checked={selected} />
-        )}
-        contentContainerStyle={{
-          padding: 20,
-        }}
-        onSelectionChange={(event) => {
-          console.log('onSelectionChange', event.nativeEvent.selected);
-        }}
-        onThumbnailPress={(event) => {
-          console.log('onThumbnailPress', event.nativeEvent);
-        }}
-        onThumbnailLongPress={(event) => {
-          console.log('onThumbnailLongPress', event.nativeEvent);
-        }}
-        thumbnailPressAction="select"
-        thumbnailLongPressAction="preview"
-        thumbnailPanAction="select"
-      />
+      {assets.length !== 0 ? (
+        <ExpoSimpleGalleryView
+          assets={assets}
+          style={styles.view}
+          columnsCount={3}
+          thumbnailOverlayComponent={({ selected }) => (
+            <Checkbox checked={selected} />
+          )}
+          thumbnailStyle={{
+            borderRadius: 20,
+            aspectRatio: 1,
+          }}
+          contentContainerStyle={{
+            padding: 20,
+            gap: 10,
+          }}
+          thumbnailPressAction="open"
+          thumbnailLongPressAction="preview"
+          thumbnailPanAction="select"
+        />
+      ) : (
+        <View style={styles.preloaderContainer}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -97,5 +106,10 @@ const styles = StyleSheet.create({
   },
   view: {
     flex: 1,
+  },
+  preloaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

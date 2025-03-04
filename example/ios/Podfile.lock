@@ -249,7 +249,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - ExpoSimpleGallery (0.0.1):
+  - ExpoSimpleGallery (1.0.0):
     - ExpoModulesCore
   - EXUpdatesInterface (1.0.0):
     - ExpoModulesCore
@@ -2029,7 +2029,7 @@ SPEC CHECKSUMS:
   ExpoKeepAwake: 62ff49bbc3bff90d8ee28329190f9ba371bf88e7
   ExpoMediaLibrary: 2ee639eb9b43a2e3cbd27bc9a575e7fc8061363b
   ExpoModulesCore: 7e6ae3311a7d566bd284043dc17627b2dac8c203
-  ExpoSimpleGallery: 6dcb1168d974ff13839c0c93d06285d25cfeca71
+  ExpoSimpleGallery: 82e016acd64121707fe900d58fe4b2251c3c8a96
   EXUpdatesInterface: 7c977640bdd8b85833c19e3959ba46145c5719db
   FBLazyVector: be509404b5de73a64a74284edcaf73a5d1e128b1
   fmt: 10c6e61f4be25dc963c36bd73fc7b1705fe975be

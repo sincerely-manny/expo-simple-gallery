@@ -1,13 +1,14 @@
 import ExpoModulesCore
 
-final class GalleryCell: UICollectionViewCell {
+final class GalleryCell: UICollectionViewCell, OverlayContainer {
   static let identifier = "GalleryCell"
   var cellIndex: Int?
   var cellUri: String?
+  var containerIdentifier: Int? { return cellIndex }
 
   weak var overlayMountingDelegate: OverlayMountingDelegate?
-  private let imageView = UIImageView()
   let overlayContainer: ExpoView
+  private let imageView = UIImageView()
   private var imageLoadTask: Cancellable?
   private var imageLoader: ImageLoaderProtocol
   private var currentImageURL: URL?
@@ -52,6 +53,9 @@ final class GalleryCell: UICollectionViewCell {
     cellIndex = index
     cellUri = uri
     self.overlayMountingDelegate = overlayMountingDelegate
+    overlayMountingDelegate.unmount(from: self)
+    overlayMountingDelegate.mount(to: self)
+
 
     guard let url = URL(string: uri) else { return }
     currentImageURL = url
@@ -70,8 +74,6 @@ final class GalleryCell: UICollectionViewCell {
         self.imageView.alpha = 1
       }
     }
-
-    overlayMountingDelegate.mount(to: self)
   }
 
   override func prepareForReuse() {

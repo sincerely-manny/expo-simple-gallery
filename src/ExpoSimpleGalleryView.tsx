@@ -1,75 +1,292 @@
 import { requireNativeView } from 'expo';
-import { memo, useCallback, useMemo, useState } from 'react';
+import {
+  type ComponentType,
+  forwardRef,
+  memo,
+  type RefAttributes,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   type ColorValue,
   type NativeSyntheticEvent,
-  Text,
-  View,
   processColor,
   useWindowDimensions,
 } from 'react-native';
-import type {
-  ExpoSimpleGalleryViewProps,
-  ThumbnailOverlayComponent,
+import {
+  type ExpoSimpleGalleryMethods,
+  type ExpoSimpleGalleryViewProps,
+  type GalleryItem,
+  isNestedArray,
+  isNotNullOrUndefined,
+  type OnPreviewMenuOptionSelectedPayload,
+  type UIAction,
 } from './ExpoSimpleGallery.types';
+import { GalleryModal } from './ExpoSimpleGalleryModal';
+import { MemoizedSectionHeader } from './components/MemoizedSectionHeader';
+import { MemoizedThumbnailOverlayComponent } from './components/MemoizedThumbnailOverlayComponent';
 
-const NativeView: React.ComponentType<ExpoSimpleGalleryViewProps> =
-  requireNativeView('ExpoSimpleGallery');
+const NativeView: ComponentType<
+  ExpoSimpleGalleryViewProps & RefAttributes<ExpoSimpleGalleryMethods>
+> = requireNativeView('ExpoSimpleGallery');
 
 const NativeViewMemoized = memo(NativeView);
 
-const MemoizedOverlayComponent = memo(
-  function MemoizedOverlayComponent({
-    OverlayComponent,
-    uri,
-    index,
-    width,
-    height,
-    selected,
-    isNull,
-  }: {
-    OverlayComponent: ThumbnailOverlayComponent;
-    uri: string;
-    index: number;
-    width: number;
-    height: number;
-    selected: boolean;
-    isNull: boolean;
-  }) {
-    const style = useMemo(
-      () => ({ position: 'absolute', width, height }) as const,
-      [width, height]
-    );
-    if (isNull) return null;
-
-    return (
-      <View
-        style={style}
-        nativeID="ExpoSimpleGalleryView"
-        collapsable={false}
-        accessibilityLabel={`GalleryViewOverlay_${index}`}
-      >
-        <Text style={{ backgroundColor: 'red', textAlign: 'center' }}>
-          {index}
-        </Text>
-        <OverlayComponent selected={selected} uri={uri} index={index} />
-      </View>
-    );
-  }
-  // (prevProps, nextProps) =>
-  //   prevProps.uri === nextProps.uri && prevProps.index === nextProps.index
-);
-
 const OVERLAYS_BUFFER = 10;
 
-export default function ExpoSimpleGalleryView({
-  thumbnailOverlayComponent: OverlayComponent,
-  assets,
+export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
+  function ExpoSimpleGalleryView(
+    {
+      thumbnailOverlayComponent: ThumbnailOverlayComponent,
+      fullscreenViewOverlayComponent: FullscreenOverlayComponent = () => null,
+      sectionHeaderComponent: SectionHeaderComponent,
+      sectionHeaderStyle,
+      assets,
+      thumbnailStyle,
+      onSelectionChange,
+      onOverlayPreloadRequested,
+      onSectionHeadersVisible,
+      debugLabels = false,
+      onThumbnailPress,
+      fullscreenViewOverlayStyle,
+      onPreviewMenuOptionSelected,
+      contextMenuOptions,
+      initiallySelected,
+      ...props
+    }: ExpoSimpleGalleryViewProps,
+    forwardedRef
+  ) {
+    const { width } = useWindowDimensions();
+    const { thumbnailWidth, thumbnailHeight, thumbnailStyleProcessed } = useThumbnailDimensions({
+      thumbnailStyle,
+      contentContainerStyle: props.contentContainerStyle,
+      columnsCount: props.columnsCount,
+    });
+
+    const openImageViewer = useCallback((index: number) => {
+      setInitialIndex(index);
+      setModalVisible(true);
+    }, []);
+
+    const thumbnailPressActionRef = useRef(props.thumbnailPressAction);
+    useEffect(() => {
+      thumbnailPressActionRef.current = props.thumbnailPressAction;
+    }, [props.thumbnailPressAction]);
+
+    const internalRef = useRef<ExpoSimpleGalleryMethods>(null);
+    useImperativeHandle(forwardedRef, () => ({
+      centerOnIndex: async (index: number) => {
+        internalRef.current?.centerOnIndex(index);
+      },
+      setSelected: async (uris: string[]) => {
+        internalRef.current?.setSelected(uris);
+      },
+      setThumbnailPressAction: async (
+        action: ExpoSimpleGalleryViewProps['thumbnailPressAction']
+      ) => {
+        thumbnailPressActionRef.current = action;
+        internalRef.current?.setThumbnailPressAction(action);
+      },
+      setThumbnailLongPressAction: async (
+        action: ExpoSimpleGalleryViewProps['thumbnailLongPressAction']
+      ) => {
+        internalRef.current?.setThumbnailLongPressAction(action);
+      },
+      setThumbnailPanAction: async (action: ExpoSimpleGalleryViewProps['thumbnailPanAction']) => {
+        internalRef.current?.setThumbnailPanAction(action);
+      },
+      setContextMenuOptions: async (options: UIAction[]) => {
+        internalRef.current?.setContextMenuOptions(options);
+      },
+      openImageViewer,
+      closeImageViewer: () => {
+        setModalVisible(false);
+      },
+    }));
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [initialIndex, setInitialIndex] = useState(0);
+
+    const [selectedUris, setSelectedUris] = useState<Set<string>>(new Set());
+
+    const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
+    const visibleRangeMin = useMemo(() => visibleRange[0], [visibleRange]);
+    const visibleRangeMax = useMemo(() => visibleRange[1], [visibleRange]);
+
+    const [visibleHeaders, setVisibleHeaders] = useState<number[]>([0]);
+    const visibleHeadersRangeMin = useMemo(() => Math.min(...visibleHeaders), [visibleHeaders]);
+    const visibleHeadersRangeMax = useMemo(() => Math.max(...visibleHeaders), [visibleHeaders]);
+
+    const handleSelectionChange = useCallback(
+      (event: NativeSyntheticEvent<{ selected: string[] }>) => {
+        setSelectedUris(new Set(event.nativeEvent.selected));
+        onSelectionChange?.(event);
+      },
+      [onSelectionChange]
+    );
+
+    const handleOverlayPreloadRequest = useCallback(
+      (event: NativeSyntheticEvent<{ range: [number, number] }>) => {
+        const [start, end] = event.nativeEvent.range;
+        setVisibleRange([start, end]);
+        onOverlayPreloadRequested?.(event);
+      },
+      [onOverlayPreloadRequested]
+    );
+
+    const handleSectionHeadersVisible = useCallback(
+      (event: NativeSyntheticEvent<{ sections: number[] }>) => {
+        setVisibleHeaders(event.nativeEvent.sections);
+        onSectionHeadersVisible?.(event);
+      },
+      [onSectionHeadersVisible]
+    );
+
+    const handleThumbnailPress = useCallback(
+      (event: NativeSyntheticEvent<GalleryItem>) => {
+        if (thumbnailPressActionRef.current === 'open') {
+          openImageViewer(event.nativeEvent.index);
+        }
+        onThumbnailPress?.(event);
+      },
+      [onThumbnailPress, openImageViewer]
+    );
+
+    const handleModalClose = useCallback((event: NativeSyntheticEvent<GalleryItem>) => {
+      internalRef.current?.centerOnIndex(event.nativeEvent.index);
+      setModalVisible(false);
+    }, []);
+
+    const thumbnailOverlays = useMemo(
+      () =>
+        assets.flat().map((uri, index) =>
+          ThumbnailOverlayComponent ? (
+            <MemoizedThumbnailOverlayComponent
+              key={uri}
+              OverlayComponent={ThumbnailOverlayComponent}
+              uri={uri}
+              index={index}
+              width={thumbnailWidth}
+              height={thumbnailHeight}
+              selected={selectedUris.has(uri)}
+              debugLabels={debugLabels}
+              isNull={
+                !(
+                  index >= visibleRangeMin - OVERLAYS_BUFFER &&
+                  index <= visibleRangeMax + OVERLAYS_BUFFER
+                )
+              }
+              // isNull={false}
+            />
+          ) : null
+        ),
+      [
+        assets,
+        ThumbnailOverlayComponent,
+        thumbnailWidth,
+        thumbnailHeight,
+        selectedUris,
+        visibleRangeMin,
+        visibleRangeMax,
+        debugLabels,
+      ]
+    );
+
+    const sectionHeaders = useMemo(() => {
+      if (!SectionHeaderComponent || !isNestedArray(assets)) return null;
+      return assets.map((group, index) => (
+        <MemoizedSectionHeader
+          key={JSON.stringify(group)}
+          SectionHeader={SectionHeaderComponent}
+          index={index}
+          width={width}
+          height={Number.parseFloat((sectionHeaderStyle?.height ?? 0).toString())}
+          debugLabels={debugLabels}
+          isNull={
+            !(
+              index >= visibleHeadersRangeMin - OVERLAYS_BUFFER &&
+              index <= visibleHeadersRangeMax + OVERLAYS_BUFFER
+            )
+          }
+        />
+      ));
+    }, [
+      SectionHeaderComponent,
+      assets,
+      sectionHeaderStyle?.height,
+      debugLabels,
+      width,
+      visibleHeadersRangeMin,
+      visibleHeadersRangeMax,
+    ]);
+
+    const children = useMemo(
+      () => [sectionHeaders, thumbnailOverlays],
+      [sectionHeaders, thumbnailOverlays]
+    );
+
+    const handlePreviewMenuOptionSelected = useCallback(
+      (event: NativeSyntheticEvent<OnPreviewMenuOptionSelectedPayload>) => {
+        const action = contextMenuOptions?.[event.nativeEvent.optionIndex]?.action;
+        action?.({
+          uri: event.nativeEvent.uri,
+          index: event.nativeEvent.index,
+        });
+      },
+      [contextMenuOptions]
+    );
+
+    return (
+      <>
+        <NativeViewMemoized
+          {...props}
+          thumbnailStyle={thumbnailStyleProcessed}
+          sectionHeaderStyle={sectionHeaderStyle}
+          assets={assets}
+          onSelectionChange={handleSelectionChange}
+          onOverlayPreloadRequested={handleOverlayPreloadRequest}
+          onSectionHeadersVisible={handleSectionHeadersVisible}
+          onThumbnailPress={handleThumbnailPress}
+          onPreviewMenuOptionSelected={handlePreviewMenuOptionSelected}
+          contextMenuOptions={contextMenuOptions}
+          onLayout={() => {
+            if (initiallySelected) {
+              internalRef.current?.setSelected(initiallySelected?.filter(isNotNullOrUndefined));
+            }
+          }}
+          ref={internalRef}
+        >
+          {/* @ts-expect-error type of children is intentionally set to never | undefined */}
+          {children}
+        </NativeViewMemoized>
+        <GalleryModal
+          visible={modalVisible}
+          uris={assets.flat()}
+          initialIndex={initialIndex}
+          onClose={handleModalClose}
+          selectedUris={selectedUris}
+          overlayComponent={FullscreenOverlayComponent}
+          style={fullscreenViewOverlayStyle}
+        />
+      </>
+    );
+  }
+);
+
+function useThumbnailDimensions({
   thumbnailStyle,
-  onSelectionChange,
-  onOverlayPreloadRequested,
-  ...props
-}: ExpoSimpleGalleryViewProps) {
+  contentContainerStyle,
+  columnsCount = 2,
+}: {
+  thumbnailStyle: ExpoSimpleGalleryViewProps['thumbnailStyle'];
+  contentContainerStyle: ExpoSimpleGalleryViewProps['contentContainerStyle'];
+  columnsCount?: number;
+}) {
+  const { width } = useWindowDimensions();
   const thumbnailStyleProcessed = useMemo(() => {
     if (!thumbnailStyle?.borderColor) return thumbnailStyle;
     const { borderColor } = thumbnailStyle;
@@ -78,107 +295,29 @@ export default function ExpoSimpleGalleryView({
       borderColor: (processColor(borderColor) as ColorValue) ?? undefined,
     };
   }, [thumbnailStyle]);
-
-  const { width } = useWindowDimensions();
   const { thumbnailWidth, thumbnailHeight } = useMemo(() => {
     const thumbnailAspectRatio =
-      Number.parseFloat(
-        (thumbnailStyleProcessed?.aspectRatio as string) ?? ''
-      ) || 1;
-    const columnsCount = props.columnsCount ?? 2;
-    const thumbnailsSpacing = props.thumbnailsSpacing ?? 0;
+      Number.parseFloat((thumbnailStyleProcessed?.aspectRatio as string) ?? '') || 1;
+
+    const thumbnailsSpacing = contentContainerStyle?.gap
+      ? Number.parseInt(contentContainerStyle?.gap.toString())
+      : 0;
     const paddingLeft =
-      props.contentContainerStyle?.paddingLeft ??
-      props.contentContainerStyle?.paddingHorizontal ??
-      props.contentContainerStyle?.padding ??
+      contentContainerStyle?.paddingLeft ??
+      contentContainerStyle?.paddingHorizontal ??
+      contentContainerStyle?.padding ??
       0;
     const paddingRight =
-      props.contentContainerStyle?.paddingRight ??
-      props.contentContainerStyle?.paddingHorizontal ??
-      props.contentContainerStyle?.padding ??
+      contentContainerStyle?.paddingRight ??
+      contentContainerStyle?.paddingHorizontal ??
+      contentContainerStyle?.padding ??
       0;
     const padding =
-      Number.parseFloat(paddingLeft as string) +
-      Number.parseFloat(paddingRight as string);
+      Number.parseFloat(paddingLeft as string) + Number.parseFloat(paddingRight as string);
     const thumbnailWidth =
       (width - padding - (columnsCount - 1) * thumbnailsSpacing) / columnsCount;
     const thumbnailHeight = thumbnailWidth / thumbnailAspectRatio;
     return { thumbnailWidth, thumbnailHeight };
-  }, [
-    width,
-    thumbnailStyleProcessed,
-    props.columnsCount,
-    props.thumbnailsSpacing,
-    props.contentContainerStyle,
-  ]);
-
-  const [selectedUris, setSelectedUris] = useState<Set<string>>(new Set());
-  const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
-  const visibleRangeMin = useMemo(() => visibleRange[0], [visibleRange]);
-  const visibleRangeMax = useMemo(() => visibleRange[1], [visibleRange]);
-
-  const handleSelectionChange = useCallback(
-    (event: NativeSyntheticEvent<{ selected: string[] }>) => {
-      setSelectedUris(new Set(event.nativeEvent.selected));
-      onSelectionChange?.(event);
-    },
-    [onSelectionChange]
-  );
-
-  const handleOverlayPreloadRequest = useCallback(
-    (event: NativeSyntheticEvent<{ range: [number, number] }>) => {
-      // console.log('handleOverlayPreloadRequest', event.nativeEvent.range);
-      const [start, end] = event.nativeEvent.range;
-      setVisibleRange([start, end]);
-      onOverlayPreloadRequested?.(event);
-    },
-    [onOverlayPreloadRequested]
-  );
-
-  const overlays = useMemo(
-    () =>
-      assets.map((uri, index) =>
-        OverlayComponent ? (
-          <MemoizedOverlayComponent
-            key={uri}
-            OverlayComponent={OverlayComponent}
-            uri={uri}
-            index={index}
-            width={thumbnailWidth}
-            height={thumbnailHeight}
-            selected={selectedUris.has(uri)}
-            isNull={
-              !(
-                index >= visibleRangeMin - OVERLAYS_BUFFER &&
-                index <= visibleRangeMax + OVERLAYS_BUFFER
-              )
-            }
-            // isNull={false}
-          />
-        ) : null
-      ),
-    [
-      assets,
-      OverlayComponent,
-      thumbnailWidth,
-      thumbnailHeight,
-      selectedUris,
-      visibleRangeMin,
-      visibleRangeMax,
-    ]
-  );
-
-  // return null;
-  return (
-    <NativeViewMemoized
-      {...props}
-      thumbnailStyle={thumbnailStyleProcessed}
-      assets={assets}
-      onSelectionChange={handleSelectionChange}
-      onOverlayPreloadRequested={handleOverlayPreloadRequest}
-    >
-      {/* @ts-expect-error type of children is intentionally set to never | undefined */}
-      {overlays}
-    </NativeViewMemoized>
-  );
+  }, [width, thumbnailStyleProcessed, columnsCount, contentContainerStyle]);
+  return { thumbnailWidth, thumbnailHeight, thumbnailStyleProcessed };
 }

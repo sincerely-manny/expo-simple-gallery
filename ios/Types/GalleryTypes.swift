@@ -11,6 +11,13 @@ struct GalleryConfiguration {
   var borderWidth: CGFloat = 0
   var borderColor: UIColor?
   var padding: UIEdgeInsets = .zero
+  var sectionInsets: UIEdgeInsets = .zero
+  var sectionHeaderHeight: CGFloat = 40
+}
+
+struct SectionInfo: Codable {
+  let sectionIndex: Int
+  let itemIndex: Int
 }
 
 enum ThumbnailPressAction { case select, open, preview, none }
