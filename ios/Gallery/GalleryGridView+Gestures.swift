@@ -13,7 +13,8 @@ extension GalleryGridView {
     default:
       thumbnailPressAction = .open
     }
-    //updateLayout(animated: false)
+    //    updateLayout(animated: false)
+    //    reloadData()
   }
 
   func setThumbnailLongPressAction(_ action: String) {
@@ -30,18 +31,18 @@ extension GalleryGridView {
       thumbnailLongPressAction = .select
     }
     //updateLayout(animated: false)
+    //    reloadData()
   }
 
   func setThumbnailPanAction(_ action: String) {
     switch action {
     case "select":
       thumbnailPanAction = .select
-    case "none":
-      thumbnailPanAction = .none
     default:
       thumbnailPanAction = .none
     }
     //updateLayout(animated: false)
+    //    reloadData()
   }
 }
 
@@ -80,8 +81,14 @@ extension GalleryGridView: UICollectionViewDelegate {
 
     guard let cell = cellForItem(at: indexPath) as? GalleryCell,
       let urlString = cell.cellUri,
+      let cellIndex = cell.cellIndex,
       let url = URL(string: urlString)
     else { return nil }
+
+    gestureEventDelegate?.galleryGrid(
+      self,
+      didLongPressCell: PressedCell(index: cellIndex, uri: urlString)
+    )
 
     return UIContextMenuConfiguration(
       identifier: indexPath as NSCopying,
@@ -112,7 +119,8 @@ extension GalleryGridView: UICollectionViewDelegate {
 
     let parameters = UIPreviewParameters()
     parameters.backgroundColor = .clear
-    parameters.visiblePath = UIBezierPath(roundedRect: cell.bounds, cornerRadius: self.configuration.borderRadius)
+    parameters.visiblePath = UIBezierPath(
+      roundedRect: cell.bounds, cornerRadius: self.configuration.borderRadius)
 
     return UITargetedPreview(
       view: cell,
@@ -131,7 +139,8 @@ extension GalleryGridView: UICollectionViewDelegate {
 
     let parameters = UIPreviewParameters()
     parameters.backgroundColor = .clear
-    parameters.visiblePath = UIBezierPath(roundedRect: cell.bounds, cornerRadius: self.configuration.borderRadius)
+    parameters.visiblePath = UIBezierPath(
+      roundedRect: cell.bounds, cornerRadius: self.configuration.borderRadius)
 
     return UITargetedPreview(
       view: cell,
@@ -185,11 +194,11 @@ extension GalleryGridView {
 
     switch gesture.state {
     case .began:
-      UIView.animate(withDuration: 0.2, delay: 0.1, options: [.curveEaseInOut]) {
-        cell.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+      UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut]) {
+        cell.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
       }
     default:
-      UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseInOut]) {
+      UIView.animate(withDuration: 0.1, delay: 0, options: [.curveEaseInOut]) {
         cell.transform = .identity
       }
     }
@@ -205,11 +214,17 @@ extension GalleryGridView {
 
     let location = gesture.location(in: self)
     guard let indexPath = indexPathForItem(at: location),
-      let cell = cellForItem(at: indexPath) as? GalleryCell
+      let cell = cellForItem(at: indexPath) as? GalleryCell,
+      let cellIndex = cell.cellIndex,
+      let cellUri = cell.cellUri
     else { return }
 
     switch gesture.state {
     case .began:
+      gestureEventDelegate?.galleryGrid(
+        self,
+        didLongPressCell: PressedCell(index: cellIndex, uri: cellUri)
+      )
       UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseInOut]) {
         if self.thumbnailLongPressAction == .select {
           cell.transform = .identity
@@ -218,7 +233,7 @@ extension GalleryGridView {
         }
       }
     default:
-      UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseInOut]) {
+      UIView.animate(withDuration: 0.1, delay: 0, options: [.curveEaseInOut]) {
         cell.transform = .identity
       }
     }

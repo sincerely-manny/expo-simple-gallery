@@ -135,17 +135,9 @@ export default function ExpoSimpleGalleryView({
     [onOverlayPreloadRequested]
   );
 
-  // return null;
-  return (
-    <NativeViewMemoized
-      {...props}
-      thumbnailStyle={thumbnailStyleProcessed}
-      assets={assets}
-      onSelectionChange={handleSelectionChange}
-      onOverlayPreloadRequested={handleOverlayPreloadRequest}
-    >
-      {/* @ts-expect-error type of children is intentionally set to never | undefined */}
-      {assets.map((uri, index) =>
+  const overlays = useMemo(
+    () =>
+      assets.map((uri, index) =>
         OverlayComponent ? (
           <MemoizedOverlayComponent
             key={uri}
@@ -164,7 +156,29 @@ export default function ExpoSimpleGalleryView({
             // isNull={false}
           />
         ) : null
-      )}
+      ),
+    [
+      assets,
+      OverlayComponent,
+      thumbnailWidth,
+      thumbnailHeight,
+      selectedUris,
+      visibleRangeMin,
+      visibleRangeMax,
+    ]
+  );
+
+  // return null;
+  return (
+    <NativeViewMemoized
+      {...props}
+      thumbnailStyle={thumbnailStyleProcessed}
+      assets={assets}
+      onSelectionChange={handleSelectionChange}
+      onOverlayPreloadRequested={handleOverlayPreloadRequest}
+    >
+      {/* @ts-expect-error type of children is intentionally set to never | undefined */}
+      {overlays}
     </NativeViewMemoized>
   );
 }

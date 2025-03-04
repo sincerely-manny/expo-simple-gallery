@@ -1,6 +1,6 @@
 import { type Asset, getAssetsAsync, MediaType } from 'expo-media-library';
 import { ExpoSimpleGalleryView } from 'expo-simple-gallery';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 type CheckboxProps = {
@@ -37,11 +37,13 @@ export default function App() {
     })();
   }, []);
 
+  const uris = useMemo(() => assets.map(({ uri }) => uri), [assets]);
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Module API Example</Text>
       <ExpoSimpleGalleryView
-        columnsCount={2}
+        columnsCount={3}
         thumbnailsSpacing={10}
         thumbnailStyle={{
           borderRadius: 20,
@@ -49,7 +51,7 @@ export default function App() {
           // borderColor: 'teal',
           aspectRatio: 1,
         }}
-        assets={assets.map(({ uri }) => uri)}
+        assets={uris}
         style={styles.view}
         thumbnailOverlayComponent={({ selected, uri, index }) => (
           <Checkbox checked={selected} />
