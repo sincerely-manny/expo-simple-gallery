@@ -1,3 +1,4 @@
+import AVFoundation
 import Photos
 
 final class ImageLoader: ImageLoaderProtocol {
@@ -76,35 +77,6 @@ final class ImageLoader: ImageLoaderProtocol {
     }
   }
 
-  private func handleFileImage(
-    url: URL,
-    targetSize: CGSize,
-    completion: @escaping (UIImage?) -> Void
-  ) {
-    guard let originalImage = UIImage(contentsOfFile: url.path) else {
-      completion(nil)
-      return
-    }
-
-    // Calculate proper size including scale
-    let scale = UIScreen.main.scale
-    let scaledSize = CGSize(
-      width: targetSize.width * scale,
-      height: targetSize.height * scale
-    )
-
-    DispatchQueue.global(qos: .userInitiated).async {
-      let resizedImage = ImageResizer.resize(
-        image: originalImage,
-        to: scaledSize
-      )
-
-      DispatchQueue.main.async {
-        completion(resizedImage)
-      }
-    }
-  }
-
   private func handlePhotoLibraryImage(
     url: URL,
     targetSize: CGSize,
@@ -149,6 +121,92 @@ final class ImageLoader: ImageLoaderProtocol {
           self?.previewCache.setObject(image, forKey: url as NSURL)
         }
         completion(image)
+      }
+    }
+  }
+
+  private func handleFileImage(
+    url: URL,
+    targetSize: CGSize,
+    completion: @escaping (UIImage?) -> Void
+  ) {
+    // Check if it's a video file
+    let pathExtension = url.pathExtension.lowercased()
+    let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
+
+    if videoExtensions.contains(pathExtension) {
+      // Handle video file thumbnail
+      generateVideoThumbnail(url: url, targetSize: targetSize, completion: completion)
+      return
+    }
+
+    // Existing image handling code
+    guard let originalImage = UIImage(contentsOfFile: url.path) else {
+      completion(nil)
+      return
+    }
+
+    // Calculate proper size including scale
+    let scale = UIScreen.main.scale
+    let scaledSize = CGSize(
+      width: targetSize.width * scale,
+      height: targetSize.height * scale
+    )
+
+    DispatchQueue.global(qos: .userInitiated).async {
+      let resizedImage = ImageResizer.resize(
+        image: originalImage,
+        to: scaledSize
+      )
+
+      DispatchQueue.main.async {
+        completion(resizedImage)
+      }
+    }
+  }
+
+  // Add this new method to handle video thumbnails
+  private func generateVideoThumbnail(
+    url: URL,
+    targetSize: CGSize,
+    completion: @escaping (UIImage?) -> Void
+  ) {
+    let asset = AVAsset(url: url)
+    let imageGenerator = AVAssetImageGenerator(asset: asset)
+    imageGenerator.appliesPreferredTrackTransform = true
+
+    // Set the maximum dimensions to avoid excessive memory usage
+    let scale = UIScreen.main.scale
+    let scaledSize = CGSize(
+      width: targetSize.width * scale,
+      height: targetSize.height * scale
+    )
+    imageGenerator.maximumSize = scaledSize
+
+    // Get thumbnail at 1 second or the video's duration if shorter
+    let time = CMTime(seconds: 1, preferredTimescale: 60)
+
+    imageGenerator.generateCGImagesAsynchronously(forTimes: [NSValue(time: time)]) {
+      [weak self] _, cgImage, _, result, error in
+      guard result == .succeeded, let cgImage = cgImage, error == nil else {
+        DispatchQueue.main.async {
+          completion(nil)
+        }
+        return
+      }
+
+      let thumbnail = UIImage(cgImage: cgImage)
+
+      // Resize the thumbnail to match the target size if needed
+      DispatchQueue.global(qos: .userInitiated).async {
+        let resizedImage = ImageResizer.resize(
+          image: thumbnail,
+          to: scaledSize
+        )
+
+        DispatchQueue.main.async {
+          completion(resizedImage)
+        }
       }
     }
   }

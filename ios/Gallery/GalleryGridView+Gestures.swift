@@ -353,6 +353,7 @@ extension GalleryGridView: ScrollableToIndexDelegate {
         scrollToItem(at: indexPath, at: .centeredVertically, animated: true)
       }
     } else {
+      guard index < uris.count else { return }
       let indexPath = IndexPath(item: index, section: 0)
       scrollToItem(at: indexPath, at: .centeredVertically, animated: true)
     }

@@ -15,18 +15,8 @@ public class GalleryImageViewerModule: Module {
         }
       }
       Prop("goToPage") { (view: GalleryImageViewerView, index: Int?) in
-        if let index,
-          index >= 0 && index < view.uris.count,
-          let viewController = view.imageViewController(at: index)
-        {
-
-          let direction: UIPageViewController.NavigationDirection = index > view.currentIndex ? .forward : .reverse
-          view.pageViewController.setViewControllers(
-            [viewController],
-            direction: direction,
-            animated: true
-          )
-          view.currentIndex = index
+        if let index = index {
+          view.goToPageWithIndex(index)
         }
       }
     }

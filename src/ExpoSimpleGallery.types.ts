@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import type { NativeSyntheticEvent, ViewProps, ViewStyle } from 'react-native';
+import type { SFSymbol } from './SfSymbol.types';
 
 export type GalleryItem = {
   uri: string;
@@ -13,11 +14,17 @@ export type OnPreviewMenuOptionSelectedPayload = {
 };
 
 export type ExpoSimpleGalleryModuleEvents = {
-  onSelectionChange?: (event: NativeSyntheticEvent<{ selected: string[] }>) => void;
+  onSelectionChange?: (
+    event: NativeSyntheticEvent<{ selected: string[] }>
+  ) => void;
   onThumbnailPress?: (event: NativeSyntheticEvent<GalleryItem>) => void;
   onThumbnailLongPress?: (event: NativeSyntheticEvent<GalleryItem>) => void;
-  onOverlayPreloadRequested?: (event: NativeSyntheticEvent<{ range: [number, number] }>) => void;
-  onSectionHeadersVisible?: (event: NativeSyntheticEvent<{ sections: number[] }>) => void;
+  onOverlayPreloadRequested?: (
+    event: NativeSyntheticEvent<{ range: [number, number] }>
+  ) => void;
+  onSectionHeadersVisible?: (
+    event: NativeSyntheticEvent<{ sections: number[] }>
+  ) => void;
   onPreviewMenuOptionSelected?: (
     event: NativeSyntheticEvent<OnPreviewMenuOptionSelectedPayload>
   ) => void;
@@ -28,7 +35,8 @@ export type ThumbnailOverlayComponentProps = {
   index: number;
   selected: boolean;
 };
-export type ThumbnailOverlayComponent = ComponentType<ThumbnailOverlayComponentProps>;
+export type ThumbnailOverlayComponent =
+  ComponentType<ThumbnailOverlayComponentProps>;
 
 export type SectionHeaderComponentProps = {
   index: number;
@@ -42,13 +50,17 @@ export type FullscreenViewOverlayComponentProps = {
   index: number;
   selected: boolean;
 };
-export type FullscreenViewOverlayComponent = ComponentType<FullscreenViewOverlayComponentProps>;
+export type FullscreenViewOverlayComponent =
+  ComponentType<FullscreenViewOverlayComponentProps>;
 
 export type ExpoSimpleGalleryViewProps = ViewProps & {
   assets: string[] | string[][];
   columnsCount?: number;
 
-  thumbnailStyle?: Pick<ViewStyle, 'aspectRatio' | 'borderRadius' | 'borderWidth' | 'borderColor'>;
+  thumbnailStyle?: Pick<
+    ViewStyle,
+    'aspectRatio' | 'borderRadius' | 'borderWidth' | 'borderColor'
+  >;
   thumbnailOverlayComponent?: ThumbnailOverlayComponent;
 
   thumbnailPressAction?: 'select' | 'open' | 'none';
@@ -107,7 +119,7 @@ export type UIAction = {
   /**
    * @see https://developer.apple.com/sf-symbols/
    */
-  sfSymbol?: string;
+  sfSymbol?: SFSymbol;
   action?: (item: GalleryItem) => void;
   attributes?: UIMenuElementAttribute[];
   state?: UIMenuElementState;

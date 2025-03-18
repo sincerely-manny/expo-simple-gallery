@@ -37,7 +37,6 @@ function Checkbox({ checked }: CheckboxProps) {
 
 export default function App() {
   const [assets, setAssets] = useState<string[]>([]);
-
   useEffect(() => {
     (async () => {
       const { status } = await requestPermissionsAsync();
@@ -60,7 +59,7 @@ export default function App() {
         <ExpoSimpleGalleryView
           assets={assets}
           style={styles.view}
-          columnsCount={3}
+          columnsCount={4}
           thumbnailOverlayComponent={({ selected }) => (
             <Checkbox checked={selected} />
           )}
@@ -71,6 +70,9 @@ export default function App() {
           contentContainerStyle={{
             padding: 20,
             gap: 10,
+          }}
+          onSelectionChange={({ nativeEvent }) => {
+            console.log(nativeEvent.selected);
           }}
           thumbnailPressAction="open"
           thumbnailLongPressAction="preview"
