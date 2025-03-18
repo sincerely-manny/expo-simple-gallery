@@ -5,7 +5,8 @@ public class ExpoSimpleGalleryModule: Module {
     Name("ExpoSimpleGallery")
     View(ExpoSimpleGalleryView.self) {
       Events(
-        "onThumbnailPress", "onThumbnailLongPress", "onSelectionChange", "onOverlayPreloadRequested",
+        "onThumbnailPress", "onThumbnailLongPress", "onSelectionChange",
+        "onOverlayPreloadRequested",
         "onSectionHeadersVisible", "onPreviewMenuOptionSelected"
       )
 
@@ -63,14 +64,15 @@ public class ExpoSimpleGalleryModule: Module {
 
       AsyncFunction("setSelected") { (view: ExpoSimpleGalleryView, uris: [String]) in
         let set = Set(uris)
-        view.onSelectionChange((["selected": Array(set)]))
+        view.onSelectionChange(["selected": Array(set)])
         view.galleryView?.selectedAssets = set
       }
 
       AsyncFunction("setThumbnailPressAction") { (view: ExpoSimpleGalleryView, action: String) in
         view.galleryView?.setThumbnailPressAction(action)
       }
-      AsyncFunction("setThumbnailLongPressAction") { (view: ExpoSimpleGalleryView, action: String) in
+      AsyncFunction("setThumbnailLongPressAction") {
+        (view: ExpoSimpleGalleryView, action: String) in
         view.galleryView?.setThumbnailLongPressAction(action)
       }
       AsyncFunction("setThumbnailPanAction") { (view: ExpoSimpleGalleryView, action: String) in

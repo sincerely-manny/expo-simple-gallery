@@ -49,6 +49,7 @@ export type FullscreenViewOverlayComponentProps = {
   uri: string;
   index: number;
   selected: boolean;
+  toggleSelection: (selected?: boolean) => void;
 };
 export type FullscreenViewOverlayComponent =
   ComponentType<FullscreenViewOverlayComponentProps>;

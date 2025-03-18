@@ -61,11 +61,12 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
     forwardedRef
   ) {
     const { width } = useWindowDimensions();
-    const { thumbnailWidth, thumbnailHeight, thumbnailStyleProcessed } = useThumbnailDimensions({
-      thumbnailStyle,
-      contentContainerStyle: props.contentContainerStyle,
-      columnsCount: props.columnsCount,
-    });
+    const { thumbnailWidth, thumbnailHeight, thumbnailStyleProcessed } =
+      useThumbnailDimensions({
+        thumbnailStyle,
+        contentContainerStyle: props.contentContainerStyle,
+        columnsCount: props.columnsCount,
+      });
 
     const openImageViewer = useCallback((index: number) => {
       setInitialIndex(index);
@@ -96,7 +97,9 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
       ) => {
         internalRef.current?.setThumbnailLongPressAction(action);
       },
-      setThumbnailPanAction: async (action: ExpoSimpleGalleryViewProps['thumbnailPanAction']) => {
+      setThumbnailPanAction: async (
+        action: ExpoSimpleGalleryViewProps['thumbnailPanAction']
+      ) => {
         internalRef.current?.setThumbnailPanAction(action);
       },
       setContextMenuOptions: async (options: UIAction[]) => {
@@ -118,8 +121,14 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
     const visibleRangeMax = useMemo(() => visibleRange[1], [visibleRange]);
 
     const [visibleHeaders, setVisibleHeaders] = useState<number[]>([0]);
-    const visibleHeadersRangeMin = useMemo(() => Math.min(...visibleHeaders), [visibleHeaders]);
-    const visibleHeadersRangeMax = useMemo(() => Math.max(...visibleHeaders), [visibleHeaders]);
+    const visibleHeadersRangeMin = useMemo(
+      () => Math.min(...visibleHeaders),
+      [visibleHeaders]
+    );
+    const visibleHeadersRangeMax = useMemo(
+      () => Math.max(...visibleHeaders),
+      [visibleHeaders]
+    );
 
     const handleSelectionChange = useCallback(
       (event: NativeSyntheticEvent<{ selected: string[] }>) => {
@@ -156,10 +165,13 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
       [onThumbnailPress, openImageViewer]
     );
 
-    const handleModalClose = useCallback((event: NativeSyntheticEvent<GalleryItem>) => {
-      internalRef.current?.centerOnIndex(event.nativeEvent.index);
-      setModalVisible(false);
-    }, []);
+    const handleModalClose = useCallback(
+      (event: NativeSyntheticEvent<GalleryItem>) => {
+        internalRef.current?.centerOnIndex(event.nativeEvent.index);
+        setModalVisible(false);
+      },
+      []
+    );
 
     const thumbnailOverlays = useMemo(
       () =>
@@ -204,7 +216,9 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
           SectionHeader={SectionHeaderComponent}
           index={index}
           width={width}
-          height={Number.parseFloat((sectionHeaderStyle?.height ?? 0).toString())}
+          height={Number.parseFloat(
+            (sectionHeaderStyle?.height ?? 0).toString()
+          )}
           debugLabels={debugLabels}
           isNull={
             !(
@@ -231,13 +245,29 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
 
     const handlePreviewMenuOptionSelected = useCallback(
       (event: NativeSyntheticEvent<OnPreviewMenuOptionSelectedPayload>) => {
-        const action = contextMenuOptions?.[event.nativeEvent.optionIndex]?.action;
+        const action =
+          contextMenuOptions?.[event.nativeEvent.optionIndex]?.action;
         action?.({
           uri: event.nativeEvent.uri,
           index: event.nativeEvent.index,
         });
       },
       [contextMenuOptions]
+    );
+
+    const handleToggleSelection = useCallback(
+      (uri: string, selected?: boolean) => {
+        const shouldSetSelected =
+          selected === undefined ? !selectedUris.has(uri) : selected;
+        const newSet = new Set(selectedUris);
+        if (shouldSetSelected) {
+          newSet.add(uri);
+        } else {
+          newSet.delete(uri);
+        }
+        internalRef.current?.setSelected([...newSet]);
+      },
+      [selectedUris]
     );
 
     return (
@@ -255,7 +285,9 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
           contextMenuOptions={contextMenuOptions}
           onLayout={() => {
             if (initiallySelected) {
-              internalRef.current?.setSelected(initiallySelected?.filter(isNotNullOrUndefined));
+              internalRef.current?.setSelected(
+                initiallySelected?.filter(isNotNullOrUndefined)
+              );
             }
           }}
           ref={internalRef}
@@ -271,6 +303,7 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
           selectedUris={selectedUris}
           overlayComponent={FullscreenOverlayComponent}
           style={fullscreenViewOverlayStyle}
+          toggleSelection={handleToggleSelection}
         />
       </>
     );
@@ -297,7 +330,9 @@ function useThumbnailDimensions({
   }, [thumbnailStyle]);
   const { thumbnailWidth, thumbnailHeight } = useMemo(() => {
     const thumbnailAspectRatio =
-      Number.parseFloat((thumbnailStyleProcessed?.aspectRatio as string) ?? '') || 1;
+      Number.parseFloat(
+        (thumbnailStyleProcessed?.aspectRatio as string) ?? ''
+      ) || 1;
 
     const thumbnailsSpacing = contentContainerStyle?.gap
       ? Number.parseInt(contentContainerStyle?.gap.toString())
@@ -313,7 +348,8 @@ function useThumbnailDimensions({
       contentContainerStyle?.padding ??
       0;
     const padding =
-      Number.parseFloat(paddingLeft as string) + Number.parseFloat(paddingRight as string);
+      Number.parseFloat(paddingLeft as string) +
+      Number.parseFloat(paddingRight as string);
     const thumbnailWidth =
       (width - padding - (columnsCount - 1) * thumbnailsSpacing) / columnsCount;
     const thumbnailHeight = thumbnailWidth / thumbnailAspectRatio;

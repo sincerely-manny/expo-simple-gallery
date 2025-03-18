@@ -23,4 +23,5 @@ export type GalleryModalProps = {
   overlayComponent?: FullscreenViewOverlayComponent;
   selectedUris: Set<string>;
   style?: StyleProp<ViewStyle>;
+  toggleSelection: (uri: string, selected?: boolean) => void;
 };

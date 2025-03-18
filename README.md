@@ -87,7 +87,7 @@ The main component for rendering an image gallery grid.
 | `contentContainerStyle` | `object` | Style object for the content container. Available properties: `padding`, `paddingHorizontal`, `paddingVertical`, `paddingTop`, `paddingBottom`, `paddingLeft`, `paddingRight`, `gap` |
 | `sectionHeaderStyle` | `object` | Style object for section headers when using grouped assets. Available properties: `height` |
 | `thumbnailOverlayComponent` | `({uri: string, index: number, selected: boolean }) => Component`  | React component to render as overlay on thumbnails. |
-| `fullscreenViewOverlayComponent` | `({uri: string, index: number, selected: boolean }) => Component` | React component to render as overlay in fullscreen view. |
+| `fullscreenViewOverlayComponent` | `({uri: string, index: number, selected: boolean, toggleSelection: (selected?: boolean) => void }) => Component` | React component to render as overlay in fullscreen view. `toggleSelection` toggles the selection state of the item if param is undefined, otherwise sets the selection state to the provided value. |
 | `sectionHeaderComponent` | `({index: number}) => Component` | React component to render as section header. |
 
 #### Gesture Actions Reference
@@ -101,19 +101,19 @@ The main component for rendering an image gallery grid.
 
 | Event | Type | Description |
 |-------|------|-------------|
-| `onThumbnailPress` | `(event: NativeSyntheticEvent<{ uri: string, index: number }>) => void` | Fired when a thumbnail is pressed. |
-| `onThumbnailLongPress` | `(event: NativeSyntheticEvent<{ uri: string, index: number }>) => void` | Fired when a thumbnail is long pressed. |
-| `onSelectionChange` | `(event: NativeSyntheticEvent<{ selected: string[] }>) => void` | Fired when selected items change. |
-| `onOverlayPreloadRequested` | `(event: NativeSyntheticEvent<{ range: [number, number] }>) => void` | Fired when overlays need to be preloaded for optimization. |
-| `onSectionHeadersVisible` | `(event: NativeSyntheticEvent<{ sections: number[] }>) => void` | Fired when section headers become visible. |
-| `onPreviewMenuOptionSelected` | `(event: NativeSyntheticEvent<{ uri: string, index: number, optionIndex: number }>) => void` | Fired when an option is selected from the context menu. |
+| `onThumbnailPress` | `(event: NativeSyntheticEvent<{ uri: string, index: number }>) => void` | Fired when a thumbnail is pressed. Returns the URI and index of the pressed thumbnail. |
+| `onThumbnailLongPress` | `(event: NativeSyntheticEvent<{ uri: string, index: number }>) => void` | Fired when a thumbnail is long pressed. Returns the URI and index of the long pressed thumbnail. |
+| `onSelectionChange` | `(event: NativeSyntheticEvent<{ selected: string[] }>) => void` | Fired when selected items change. Returns the array of selected URIs. |
+| `onOverlayPreloadRequested` | `(event: NativeSyntheticEvent<{ range: [number, number] }>) => void` | Fired when overlays need to be preloaded for optimization. Returns the range of indices to preload. |
+| `onSectionHeadersVisible` | `(event: NativeSyntheticEvent<{ sections: number[] }>) => void` | Fired when section headers become visible. Returns the array of visible section indices. |
+| `onPreviewMenuOptionSelected` | `(event: NativeSyntheticEvent<{ uri: string, index: number, optionIndex: number }>) => void` | Fired when an option is selected from the context menu. Returns the URI, index of the item, and index of the selected option. |
 
 #### Methods (available via `ref`)
 
 | Method | Description |
 |--------|-------------|
 | `centerOnIndex(index: number)` | Scrolls to center the item at the specified index. |
-| `setSelected(uris: string[])` | Sets the selected items by their URIs.  Useful is you want to manage selection state externally. |
+| `setSelected(uris: string[])` | Sets the selected items by their URIs.  Useful is you want to manage selection state externally. Triggers `onSelectionChanged` event. |
 | `setThumbnailPressAction(action: string)` | Sets the action performed when a thumbnail is pressed. Preferred over prop if dynamic changes are needed and you don't want to re-render the component. |
 | `setThumbnailLongPressAction(action: string)` | Sets the action performed when a thumbnail is long pressed. Preferred over prop if dynamic changes are needed and you don't want to re-render the component. |
 | `setThumbnailPanAction(action: string)` | Sets the action performed when panning across thumbnails. Preferred over prop if dynamic changes are needed and you don't want to re-render the component. |

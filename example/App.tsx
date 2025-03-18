@@ -3,10 +3,15 @@ import {
   MediaType,
   requestPermissionsAsync,
 } from 'expo-media-library';
-import { ExpoSimpleGalleryView } from 'expo-simple-gallery';
-import { useEffect, useState } from 'react';
+import {
+  type ExpoSimpleGalleryMethods,
+  ExpoSimpleGalleryView,
+} from 'expo-simple-gallery';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Button,
+  Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -15,10 +20,12 @@ import {
 
 type CheckboxProps = {
   checked: boolean;
+  onPress?: () => void;
 };
-function Checkbox({ checked }: CheckboxProps) {
+function Checkbox({ checked, onPress }: CheckboxProps) {
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       style={{
         width: 20,
         height: 20,
@@ -31,7 +38,7 @@ function Checkbox({ checked }: CheckboxProps) {
       }}
     >
       <Text>{checked ? '✔️' : ''}</Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -52,16 +59,34 @@ export default function App() {
     })();
   }, []);
 
+  const galleryRef = useRef<ExpoSimpleGalleryMethods>(null);
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Module API Example</Text>
+      <View style={styles.buttonContainer}>
+        <Button
+          title="Select all"
+          onPress={() => galleryRef.current?.setSelected(assets)}
+        />
+        <Button
+          title="Deselect all"
+          onPress={() => galleryRef.current?.setSelected([])}
+        />
+      </View>
       {assets.length !== 0 ? (
         <ExpoSimpleGalleryView
+          ref={galleryRef}
           assets={assets}
           style={styles.view}
           columnsCount={4}
           thumbnailOverlayComponent={({ selected }) => (
             <Checkbox checked={selected} />
+          )}
+          fullscreenViewOverlayComponent={({ selected, toggleSelection }) => (
+            <View style={{ position: 'absolute', top: 80, right: 20 }}>
+              <Checkbox checked={selected} onPress={() => toggleSelection()} />
+            </View>
           )}
           thumbnailStyle={{
             borderRadius: 20,
@@ -113,5 +138,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
 });
