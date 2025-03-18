@@ -58,8 +58,10 @@ final class GalleryCell: UICollectionViewCell, OverlayContainer {
       // Position indicator in bottom right with padding
       mediaTypeIndicatorView.widthAnchor.constraint(equalToConstant: 24),
       mediaTypeIndicatorView.heightAnchor.constraint(equalToConstant: 24),
-      mediaTypeIndicatorView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
-      mediaTypeIndicatorView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+      mediaTypeIndicatorView.bottomAnchor.constraint(
+        equalTo: contentView.bottomAnchor, constant: -8),
+      mediaTypeIndicatorView.trailingAnchor.constraint(
+        equalTo: contentView.trailingAnchor, constant: -8),
     ])
 
     imageView.alpha = 0
@@ -126,7 +128,8 @@ final class GalleryCell: UICollectionViewCell, OverlayContainer {
 
   private func detectPhotoLibraryMediaType(url: URL) {
     let assetID = url.absoluteString.replacingOccurrences(of: "ph://", with: "")
-    guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil).firstObject else {
+    guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil).firstObject
+    else {
       mediaTypeIndicatorView.isHidden = true
       return
     }
@@ -181,5 +184,8 @@ extension GalleryCell {
     contentView.layer.masksToBounds = true
     contentView.layer.borderWidth = configuration.borderWidth
     contentView.layer.borderColor = configuration.borderColor?.cgColor ?? nil
+    if !configuration.showMediaTypeIcon {
+      mediaTypeIndicatorView.isHidden = true
+    }
   }
 }

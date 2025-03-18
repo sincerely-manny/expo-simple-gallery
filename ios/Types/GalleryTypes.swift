@@ -13,6 +13,7 @@ struct GalleryConfiguration {
   var padding: UIEdgeInsets = .zero
   var sectionInsets: UIEdgeInsets = .zero
   var sectionHeaderHeight: CGFloat = 40
+  var showMediaTypeIcon: Bool = true
 }
 
 struct SectionInfo: Codable {

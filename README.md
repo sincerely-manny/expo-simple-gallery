@@ -64,7 +64,7 @@ export default function App() {
 }
 ```
 
-## Components
+## Component
 
 ### ExpoSimpleGalleryView
 
@@ -80,24 +80,32 @@ The main component for rendering an image gallery grid.
 | `thumbnailLongPressAction` | `'select'` \| `'open'` \| `'preview'` \| `'none'` | Action to perform when a thumbnail is long pressed. |
 | `thumbnailPanAction` | `'select'` \| `'none'` | Action to perform when panning across thumbnails. |
 | `contextMenuOptions` | `array` (`UIAction[]`) | Options for the context menu that appears on long press. |
-| `fullscreenViewOverlayStyle` | `object` (`ViewStyle`) | Style object for the fullscreen view overlay. |
 | `initiallySelected` | `string[]` | URIs of items to be marked as selected on initial render. |
 | `style` | `object` (`ViewStyle`) | Style object for the gallery container. |
 | `thumbnailStyle` | `object` | Style object for thumbnail items. Available properties: `aspectRatio`, `borderRadius`, `borderWidth`, `borderColor' |
 | `contentContainerStyle` | `object` | Style object for the content container. Available properties: `padding`, `paddingHorizontal`, `paddingVertical`, `paddingTop`, `paddingBottom`, `paddingLeft`, `paddingRight`, `gap` |
 | `sectionHeaderStyle` | `object` | Style object for section headers when using grouped assets. Available properties: `height` |
+| `fullscreenViewOverlayStyle` | `object` (`ViewStyle`) | Style object for the fullscreen view overlay. |
 | `thumbnailOverlayComponent` | `({uri: string, index: number, selected: boolean }) => Component`  | React component to render as overlay on thumbnails. |
 | `fullscreenViewOverlayComponent` | `({uri: string, index: number, selected: boolean, toggleSelection: (selected?: boolean) => void }) => Component` | React component to render as overlay in fullscreen view. `toggleSelection` toggles the selection state of the item if param is undefined, otherwise sets the selection state to the provided value. |
 | `sectionHeaderComponent` | `({index: number}) => Component` | React component to render as section header. |
+| `showMediaTypeIcon` | `boolean` | Whether to show the media type icon on thumbnails (for videos and live photos). Default: `true` |
 
 #### Gesture Actions Reference
 
-- **Select**: Adds/removes the item to/from the selection and fires the `onSelectionChange` event.
-- **Open**: Opens the fullscreen viewer with the selected image.
-- **Preview**: Opens a preview with context menu with additional options (if provided).
-- **None**: No action is performed, still fires the corresponding event (`onThumbnailPress`, `onThumbnailLongPress`).
+- **select**: Adds/removes the item to/from the selection and fires the `onSelectionChange` event.
+- **open**: Opens the fullscreen viewer with the selected image.
+- **preview**: Opens a preview with context menu with additional options (if provided).
+- **none**: No action is performed, still fires the corresponding event (`onThumbnailPress`, `onThumbnailLongPress`).
 
 #### Events
+
+```jsx
+<ExpoSimpleGalleryView
+  assets={['file:///path/to/image1.jpg', 'ph://asset-id-2']}
+  onThumbnailPress={({nativeEvent}) => console.log(nativeEvent.uri)}
+/>
+```
 
 | Event | Type | Description |
 |-------|------|-------------|
@@ -109,6 +117,17 @@ The main component for rendering an image gallery grid.
 | `onPreviewMenuOptionSelected` | `(event: NativeSyntheticEvent<{ uri: string, index: number, optionIndex: number }>) => void` | Fired when an option is selected from the context menu. Returns the URI, index of the item, and index of the selected option. |
 
 #### Methods (available via `ref`)
+
+```typescript
+import { type ExpoSimpleGalleryMethods } from 'expo-simple-gallery';
+...
+const galleryRef = useRef<ExpoSimpleGalleryMethods>(null)
+useEffect(() => {
+  galleryRef.current?.centerOnIndex(0);
+  galleryRef.current?.setSelected(['file:///path/to/image1.jpg', 'ph://asset-id-2']);
+  galleryRef.current?.setThumbnailPressAction('open');
+}, []);
+```
 
 | Method | Description |
 |--------|-------------|
@@ -125,21 +144,21 @@ The main component for rendering an image gallery grid.
 
 ### Grouped Gallery with Sections
 
-If you have multiple groups of images, you can use nested arrays to create sections. Each nested array will be displayed as a separate section with a header. Headers can be set using the `sectionHeaderComponent` prop.
+If you have multiple groups of images, you can pass nested arrays as `assets` to create sections. Each nested array will be displayed as a separate section with a header. Headers can be set using the `sectionHeaderComponent` prop.
 
 ```jsx
 import { ExpoSimpleGalleryView } from 'expo-simple-gallery';
 
 export default function GroupedGallery() {
   // Images grouped by date or category
-  const groupedAssets = [
+  const groups = [
     ['file:///path/to/group1/image1.jpg', 'file:///path/to/group1/image2.jpg'],
     ['file:///path/to/group2/image1.jpg', 'file:///path/to/group2/image2.jpg'],
   ];
 
   return (
     <ExpoSimpleGalleryView
-      assets={groupedAssets}
+      assets={groups}
       columnsCount={3}
       sectionHeaderStyle={{ height: 40 }}
       sectionHeaderComponent={({ index }) => (
@@ -160,17 +179,22 @@ import { ExpoSimpleGalleryView, ExpoSimpleGalleryMethods } from 'expo-simple-gal
 
 export default function SelectionExample() {
   const galleryRef = useRef<ExpoSimpleGalleryMethods>(null);
+  const assets = ['file:///path/to/image1.jpg', 'ph://asset-id-2'];
   const [selectedUris, setSelectedUris] = useState<string[]>(['file:///path/to/image1.jpg']);
 
-  useEffect(() => {
-    galleryRef.current?.setSelected(selectedUris);
-  }, [selectedUris]);
+  const selectAll = useCallback(() => {
+    galleryRef.current?.setSelected(assets)
+  }, [assets]);
+
+  const clearSelection = useCallback(() => {
+    galleryRef.current?.setSelected([]);
+  }, []);
 
   return (
     <>
       <ExpoSimpleGalleryView
         ref={galleryRef}
-        assets={['file:///path/to/image1.jpg', 'ph://asset-id-2']}
+        assets={assets}
         thumbnailPressAction="select"
         thumbnailLongPressAction="preview"
         thumbnailPanAction="select"
@@ -180,11 +204,14 @@ export default function SelectionExample() {
         }}
       />
 
+
+      <Button
+        title="Select All"
+        onPress={selectAll}
+      />
       <Button
         title="Clear Selection"
-        onPress={() => {
-          setSelectedUris([]);
-        }}
+        onPress={clearSelection}
       />
     </>
   );

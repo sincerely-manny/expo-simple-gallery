@@ -102,6 +102,7 @@ export default function App() {
           thumbnailPressAction="open"
           thumbnailLongPressAction="preview"
           thumbnailPanAction="select"
+          showMediaTypeIcon={false}
         />
       ) : (
         <View style={styles.preloaderContainer}>

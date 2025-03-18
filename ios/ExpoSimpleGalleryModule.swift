@@ -56,6 +56,9 @@ public class ExpoSimpleGalleryModule: Module {
       Prop("contextMenuOptions") { (view: ExpoSimpleGalleryView, options: [Any]) in
         view.galleryView?.setContextmenuOptions(options)
       }
+      Prop("showMediaTypeIcon") { (view: ExpoSimpleGalleryView, isVisible: Bool) in
+        view.galleryView?.setMediaTypeIconIsVisible(isVisible)
+      }
 
       AsyncFunction("centerOnIndex") { (view: ExpoSimpleGalleryView, index: Int) in
         print("AsyncFunction(centerOnIndex)")

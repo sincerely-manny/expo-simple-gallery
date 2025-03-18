@@ -147,6 +147,11 @@ extension GalleryGridView {
     updateLayout(animated: false)
   }
 
+  func setMediaTypeIconIsVisible(_ isVisible: Bool) {
+    configuration.showMediaTypeIcon = isVisible
+    updateLayout(animated: false)
+  }
+
   func setContentContainerStyle(_ style: [String: Any], animated: Bool = true) {
     var sectionInsets = UIEdgeInsets.zero
     var containerInsets = UIEdgeInsets.zero
@@ -234,7 +239,8 @@ extension GalleryGridView {
             }
           }()
 
-          return UIAction(title: title, image: image, attributes: attributes, state: state) { [weak self] _ in
+          return UIAction(title: title, image: image, attributes: attributes, state: state) {
+            [weak self] _ in
             self?.contextMenuActionsDelegate?.onPreviewMenuOptionSelected([
               "optionIndex": index, "index": cellIndex, "uri": cellUri,
             ])

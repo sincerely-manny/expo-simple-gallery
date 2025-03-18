@@ -92,6 +92,8 @@ export type ExpoSimpleGalleryViewProps = ViewProps & {
 
   initiallySelected?: (string | undefined)[];
 
+  showMediaTypeIcon?: boolean;
+
   debugLabels?: boolean;
 } & ExpoSimpleGalleryModuleEvents;
 
