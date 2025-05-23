@@ -1,4 +1,4 @@
-import { requireNativeView } from 'expo';
+import { requireNativeViewManager } from 'expo-modules-core';
 import {
   type ComponentType,
   forwardRef,
@@ -32,7 +32,7 @@ import { MemoizedThumbnailOverlayComponent } from './components/MemoizedThumbnai
 
 const NativeView: ComponentType<
   ExpoSimpleGalleryViewProps & RefAttributes<ExpoSimpleGalleryMethods>
-> = requireNativeView('ExpoSimpleGallery');
+> = requireNativeViewManager('ExpoSimpleGallery');
 
 const NativeViewMemoized = memo(NativeView);
 
@@ -61,12 +61,11 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
     forwardedRef
   ) {
     const { width } = useWindowDimensions();
-    const { thumbnailWidth, thumbnailHeight, thumbnailStyleProcessed } =
-      useThumbnailDimensions({
-        thumbnailStyle,
-        contentContainerStyle: props.contentContainerStyle,
-        columnsCount: props.columnsCount,
-      });
+    const { thumbnailWidth, thumbnailHeight, thumbnailStyleProcessed } = useThumbnailDimensions({
+      thumbnailStyle,
+      contentContainerStyle: props.contentContainerStyle,
+      columnsCount: props.columnsCount,
+    });
 
     const openImageViewer = useCallback((index: number) => {
       setInitialIndex(index);
@@ -97,9 +96,7 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
       ) => {
         internalRef.current?.setThumbnailLongPressAction(action);
       },
-      setThumbnailPanAction: async (
-        action: ExpoSimpleGalleryViewProps['thumbnailPanAction']
-      ) => {
+      setThumbnailPanAction: async (action: ExpoSimpleGalleryViewProps['thumbnailPanAction']) => {
         internalRef.current?.setThumbnailPanAction(action);
       },
       setContextMenuOptions: async (options: UIAction[]) => {
@@ -121,14 +118,8 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
     const visibleRangeMax = useMemo(() => visibleRange[1], [visibleRange]);
 
     const [visibleHeaders, setVisibleHeaders] = useState<number[]>([0]);
-    const visibleHeadersRangeMin = useMemo(
-      () => Math.min(...visibleHeaders),
-      [visibleHeaders]
-    );
-    const visibleHeadersRangeMax = useMemo(
-      () => Math.max(...visibleHeaders),
-      [visibleHeaders]
-    );
+    const visibleHeadersRangeMin = useMemo(() => Math.min(...visibleHeaders), [visibleHeaders]);
+    const visibleHeadersRangeMax = useMemo(() => Math.max(...visibleHeaders), [visibleHeaders]);
 
     const handleSelectionChange = useCallback(
       (event: NativeSyntheticEvent<{ selected: string[] }>) => {
@@ -165,13 +156,11 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
       [onThumbnailPress, openImageViewer]
     );
 
-    const handleModalClose = useCallback(
-      (event: NativeSyntheticEvent<GalleryItem>) => {
-        internalRef.current?.centerOnIndex(event.nativeEvent.index);
-        setModalVisible(false);
-      },
-      []
-    );
+    const handleModalClose = useCallback((event: NativeSyntheticEvent<GalleryItem>) => {
+      const index = event.nativeEvent.index;
+      setModalVisible(false);
+      internalRef.current?.centerOnIndex(index);
+    }, []);
 
     const thumbnailOverlays = useMemo(
       () =>
@@ -216,9 +205,7 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
           SectionHeader={SectionHeaderComponent}
           index={index}
           width={width}
-          height={Number.parseFloat(
-            (sectionHeaderStyle?.height ?? 0).toString()
-          )}
+          height={Number.parseFloat((sectionHeaderStyle?.height ?? 0).toString())}
           debugLabels={debugLabels}
           isNull={
             !(
@@ -245,8 +232,7 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
 
     const handlePreviewMenuOptionSelected = useCallback(
       (event: NativeSyntheticEvent<OnPreviewMenuOptionSelectedPayload>) => {
-        const action =
-          contextMenuOptions?.[event.nativeEvent.optionIndex]?.action;
+        const action = contextMenuOptions?.[event.nativeEvent.optionIndex]?.action;
         action?.({
           uri: event.nativeEvent.uri,
           index: event.nativeEvent.index,
@@ -257,8 +243,7 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
 
     const handleToggleSelection = useCallback(
       (uri: string, selected?: boolean) => {
-        const shouldSetSelected =
-          selected === undefined ? !selectedUris.has(uri) : selected;
+        const shouldSetSelected = selected === undefined ? !selectedUris.has(uri) : selected;
         const newSet = new Set(selectedUris);
         if (shouldSetSelected) {
           newSet.add(uri);
@@ -285,9 +270,7 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
           contextMenuOptions={contextMenuOptions}
           onLayout={() => {
             if (initiallySelected) {
-              internalRef.current?.setSelected(
-                initiallySelected?.filter(isNotNullOrUndefined)
-              );
+              internalRef.current?.setSelected(initiallySelected?.filter(isNotNullOrUndefined));
             }
           }}
           ref={internalRef}
@@ -330,9 +313,7 @@ function useThumbnailDimensions({
   }, [thumbnailStyle]);
   const { thumbnailWidth, thumbnailHeight } = useMemo(() => {
     const thumbnailAspectRatio =
-      Number.parseFloat(
-        (thumbnailStyleProcessed?.aspectRatio as string) ?? ''
-      ) || 1;
+      Number.parseFloat((thumbnailStyleProcessed?.aspectRatio as string) ?? '') || 1;
 
     const thumbnailsSpacing = contentContainerStyle?.gap
       ? Number.parseInt(contentContainerStyle?.gap.toString())
@@ -348,8 +329,7 @@ function useThumbnailDimensions({
       contentContainerStyle?.padding ??
       0;
     const padding =
-      Number.parseFloat(paddingLeft as string) +
-      Number.parseFloat(paddingRight as string);
+      Number.parseFloat(paddingLeft as string) + Number.parseFloat(paddingRight as string);
     const thumbnailWidth =
       (width - padding - (columnsCount - 1) * thumbnailsSpacing) / columnsCount;
     const thumbnailHeight = thumbnailWidth / thumbnailAspectRatio;

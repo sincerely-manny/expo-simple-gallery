@@ -61,7 +61,6 @@ public class ExpoSimpleGalleryModule: Module {
       }
 
       AsyncFunction("centerOnIndex") { (view: ExpoSimpleGalleryView, index: Int) in
-        print("AsyncFunction(centerOnIndex)")
         view.galleryView?.centerOnIndex(index)
       }.runOnQueue(.main)
 
