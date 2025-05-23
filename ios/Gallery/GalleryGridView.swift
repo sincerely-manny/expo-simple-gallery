@@ -16,9 +16,9 @@ final class GalleryGridView: UICollectionView {
   weak var overlayMountingDelegate: OverlayMountingDelegate?
   weak var gestureEventDelegate: GestureEventDelegate?
   weak var contextMenuActionsDelegate: ContextMenuActionsDelegate?
-  
+
   var contextMenuOptions: (Int, String) -> [UIAction] = { _, _ in [] }
-  
+
   var selectedAssets = Set<String>()
   var lastVisitedIndexPath: IndexPath?
   var firstVisitedCellWasSelected = false

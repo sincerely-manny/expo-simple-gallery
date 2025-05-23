@@ -1,13 +1,6 @@
-import {
-  getAssetsAsync,
-  MediaType,
-  requestPermissionsAsync,
-} from 'expo-media-library';
-import {
-  type ExpoSimpleGalleryMethods,
-  ExpoSimpleGalleryView,
-} from 'expo-simple-gallery';
-import { useEffect, useRef, useState } from 'react';
+import { getAssetsAsync, MediaType, requestPermissionsAsync } from 'expo-media-library';
+import { type ExpoSimpleGalleryMethods, ExpoSimpleGalleryView } from 'expo-simple-gallery';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Button,
@@ -59,30 +52,31 @@ export default function App() {
     })();
   }, []);
 
+  const [isFiltered, setIsFiltered] = useState(false);
+  const assetsFiltered = useMemo(() => {
+    if (isFiltered) {
+      return assets.filter((_, index) => index % 2 === 0);
+    }
+    return assets;
+  }, [assets, isFiltered]);
+
   const galleryRef = useRef<ExpoSimpleGalleryMethods>(null);
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Module API Example</Text>
       <View style={styles.buttonContainer}>
-        <Button
-          title="Select all"
-          onPress={() => galleryRef.current?.setSelected(assets)}
-        />
-        <Button
-          title="Deselect all"
-          onPress={() => galleryRef.current?.setSelected([])}
-        />
+        <Button title="Select all" onPress={() => galleryRef.current?.setSelected(assets)} />
+        <Button title="Deselect all" onPress={() => galleryRef.current?.setSelected([])} />
+        <Button title="Toggle filter even" onPress={() => setIsFiltered((prev) => !prev)} />
       </View>
       {assets.length !== 0 ? (
         <ExpoSimpleGalleryView
           ref={galleryRef}
-          assets={assets}
+          assets={assetsFiltered}
           style={styles.view}
           columnsCount={4}
-          thumbnailOverlayComponent={({ selected }) => (
-            <Checkbox checked={selected} />
-          )}
+          thumbnailOverlayComponent={({ selected }) => <Checkbox checked={selected} />}
           fullscreenViewOverlayComponent={({ selected, toggleSelection }) => (
             <View style={{ position: 'absolute', top: 80, right: 20 }}>
               <Checkbox checked={selected} onPress={() => toggleSelection()} />
@@ -99,7 +93,7 @@ export default function App() {
           onSelectionChange={({ nativeEvent }) => {
             console.log(nativeEvent.selected);
           }}
-          thumbnailPressAction="open"
+          thumbnailPressAction="select"
           thumbnailLongPressAction="preview"
           thumbnailPanAction="select"
           showMediaTypeIcon={false}

@@ -167,7 +167,8 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
         assets.flat().map((uri, index) =>
           ThumbnailOverlayComponent ? (
             <MemoizedThumbnailOverlayComponent
-              key={uri}
+              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+              key={`${uri}-${index}`}
               OverlayComponent={ThumbnailOverlayComponent}
               uri={uri}
               index={index}
@@ -258,6 +259,7 @@ export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
     return (
       <>
         <NativeViewMemoized
+          key={assets.length}
           {...props}
           thumbnailStyle={thumbnailStyleProcessed}
           sectionHeaderStyle={sectionHeaderStyle}
