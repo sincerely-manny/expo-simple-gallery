@@ -46,14 +46,18 @@ extension GalleryGridView {
 
     reloadData()
 
-    if !uris.isEmpty {
-      let visibleItems = indexPathsForVisibleItems.map { $0.item }
-      if let minItem = visibleItems.min(), let maxItem = visibleItems.max() {
-        let range = (minItem, maxItem)
-        overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: range)
-      } else {
-        let initialRange = (0, min(uris.count - 1, 30))
-        overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: initialRange)
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+      guard let self = self else { return }
+
+      if !uris.isEmpty {
+        let visibleItems = self.indexPathsForVisibleItems.map { $0.item }
+        if let minItem = visibleItems.min(), let maxItem = visibleItems.max() {
+          let range = (minItem, maxItem)
+          self.overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: range)
+        } else {
+          let initialRange = (0, min(uris.count - 1, 30))
+          self.overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: initialRange)
+        }
       }
     }
   }
@@ -68,21 +72,25 @@ extension GalleryGridView {
 
     reloadData()
 
-    if !uris.isEmpty {
-      let visibleIndexPaths = indexPathsForVisibleItems
-      let flatIndices = visibleIndexPaths.compactMap { indexPath -> Int? in
-        // Find the corresponding flat index for this indexPath
-        sectionData.firstIndex { dict in
-          dict["sectionIndex"] == indexPath.section && dict["itemIndex"] == indexPath.item
-        }
-      }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+      guard let self = self else { return }
 
-      if let minItem = flatIndices.min(), let maxItem = flatIndices.max() {
-        let range = (minItem, maxItem)
-        overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: range)
-      } else {
-        let initialRange = (0, min(uris.count - 1, 30))
-        overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: initialRange)
+      if !uris.isEmpty {
+        let visibleIndexPaths = self.indexPathsForVisibleItems
+        let flatIndices = visibleIndexPaths.compactMap { indexPath -> Int? in
+          // Find the corresponding flat index for this indexPath
+          sectionData.firstIndex { dict in
+            dict["sectionIndex"] == indexPath.section && dict["itemIndex"] == indexPath.item
+          }
+        }
+
+        if let minItem = flatIndices.min(), let maxItem = flatIndices.max() {
+          let range = (minItem, maxItem)
+          self.overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: range)
+        } else {
+          let initialRange = (0, min(uris.count - 1, 30))
+          self.overlayPreloadingDelegate?.galleryGrid(self, prefetchOverlaysFor: initialRange)
+        }
       }
     }
   }
