@@ -95,6 +95,8 @@ export type ExpoSimpleGalleryViewProps = ViewProps & {
   showMediaTypeIcon?: boolean;
 
   debugLabels?: boolean;
+
+  viewer?: 'UIKit' | 'SwiftUI';
 } & ExpoSimpleGalleryModuleEvents;
 
 export interface ExpoSimpleGalleryMethods {

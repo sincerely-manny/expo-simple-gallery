@@ -1,8 +1,16 @@
 import { requireNativeViewManager } from 'expo-modules-core';
 import { type ComponentType, useCallback, useMemo, useState } from 'react';
-import { Modal, type NativeSyntheticEvent, StyleSheet, View } from 'react-native';
+import {
+  Modal,
+  type NativeSyntheticEvent,
+  StyleSheet,
+  View,
+} from 'react-native';
 import type { GalleryItem } from './ExpoSimpleGallery.types';
-import type { GalleryModalProps, GalleryViewerProps } from './ExpoSimpleGalleryModal.types';
+import type {
+  GalleryModalProps,
+  GalleryViewerProps,
+} from './ExpoSimpleGalleryModal.types';
 
 const GalleryViewer: ComponentType<GalleryViewerProps> =
   requireNativeViewManager('GalleryImageViewer');
@@ -16,10 +24,14 @@ export function GalleryModal({
   selectedUris,
   style,
   toggleSelection,
+  viewer = 'UIKit',
 }: GalleryModalProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [currentUri, setCurrentUri] = useState(uris[initialIndex] || '');
-  const selected = useMemo(() => selectedUris.has(currentUri), [selectedUris, currentUri]);
+  const selected = useMemo(
+    () => selectedUris.has(currentUri),
+    [selectedUris, currentUri]
+  );
 
   const handlePageChange = useCallback(
     (event: NativeSyntheticEvent<{ index: number; uri: string }>) => {
@@ -45,13 +57,19 @@ export function GalleryModal({
   );
 
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <View style={[styles.container, style]}>
         <GalleryViewer
           style={styles.viewer}
           imageData={{ uris, startIndex: initialIndex }}
           onPageChange={handlePageChange}
           onDismissAttempt={handleDismissAttempt}
+          viewer={viewer}
         />
 
         {OverlayComponent && (

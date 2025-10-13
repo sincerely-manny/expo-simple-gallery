@@ -24,13 +24,12 @@ struct SwiftUIGalleryView: View {
       } else {
         TabView(selection: $viewModel.index) {
           ForEach(viewModel.uris.indices, id: \.self) { i in
-            PageImageView(
+            PageMediaView(
               uri: viewModel.uris[i],
               index: i,
               onLoaded: onImageLoaded,
               onDismiss: onDismissAttempt,
-              onDragProgress: { progress in
-              }
+              onDragProgress: { _ in }
             )
             .tag(i)
             .background(Color.black)

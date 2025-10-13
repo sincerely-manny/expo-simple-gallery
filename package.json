@@ -1,6 +1,6 @@
 {
   "name": "expo-simple-gallery",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Image gallery view",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -14,7 +14,12 @@
     "expo-module": "expo-module",
     "open:ios": "xed example/ios"
   },
-  "keywords": ["react-native", "expo", "expo-simple-gallery", "ExpoSimpleGallery"],
+  "keywords": [
+    "react-native",
+    "expo",
+    "expo-simple-gallery",
+    "ExpoSimpleGallery"
+  ],
   "repository": "https://github.com/sincerely-manny/expo-simple-gallery",
   "bugs": {
     "url": "https://github.com/sincerely-manny/expo-simple-gallery/issues"

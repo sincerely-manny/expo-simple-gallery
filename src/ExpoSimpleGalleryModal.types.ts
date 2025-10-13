@@ -13,6 +13,7 @@ export type GalleryViewerProps = {
   onImageLoaded?: (event: NativeSyntheticEvent<GalleryItem>) => void;
   onDismissAttempt?: (event: NativeSyntheticEvent<GalleryItem>) => void;
   style?: StyleProp<ViewStyle>;
+  viewer: 'UIKit' | 'SwiftUI';
 };
 
 export type GalleryModalProps = {
@@ -24,4 +25,5 @@ export type GalleryModalProps = {
   selectedUris: Set<string>;
   style?: StyleProp<ViewStyle>;
   toggleSelection: (uri: string, selected?: boolean) => void;
+  viewer: 'UIKit' | 'SwiftUI';
 };

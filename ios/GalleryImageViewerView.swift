@@ -11,9 +11,9 @@ class GalleryImageViewerView: ExpoView {
   var uris: [String] = []
   var currentIndex: Int = 0
 
-  let onPageChange = EventDispatcher()
-  let onImageLoaded = EventDispatcher()
-  let onDismissAttempt = EventDispatcher()
+  var onPageChange = EventDispatcher()
+  var onImageLoaded = EventDispatcher()
+  var onDismissAttempt = EventDispatcher()
 
   private var mediaTypeCache = [String: MediaType]()  // Cache the media type for each URI
   private var loadedLivePhotos = [String: PHLivePhoto]()  // Cache for loaded live photos
@@ -75,7 +75,8 @@ class GalleryImageViewerView: ExpoView {
 
     // For videos, properly clean up player items
     for (_, playerItem) in loadedPlayerItems {
-      NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: playerItem)
+      NotificationCenter.default.removeObserver(
+        self, name: .AVPlayerItemDidPlayToEndTime, object: playerItem)
     }
     loadedPlayerItems.removeAll()
 
@@ -95,7 +96,8 @@ class GalleryImageViewerView: ExpoView {
     if hasHighQuality {
       let viewController = ImagePageViewController()
       viewController.delegate = self
-      viewController.configure(with: uri, index: index, imageCache: imageCache, hasHighQuality: true)
+      viewController.configure(
+        with: uri, index: index, imageCache: imageCache, hasHighQuality: true)
       completion(viewController)
       return
     }
@@ -111,7 +113,8 @@ class GalleryImageViewerView: ExpoView {
           // Fall back to image view controller for errors
           let viewController = ImagePageViewController()
           viewController.delegate = self
-          viewController.configure(with: uri, index: index, imageCache: self.imageCache, hasHighQuality: false)
+          viewController.configure(
+            with: uri, index: index, imageCache: self.imageCache, hasHighQuality: false)
           completion(viewController)
           return
         }
@@ -129,7 +132,8 @@ class GalleryImageViewerView: ExpoView {
           // Fall back to image view controller if we couldn't determine media type
           let viewController = ImagePageViewController()
           viewController.delegate = self
-          viewController.configure(with: uri, index: index, imageCache: self.imageCache, hasHighQuality: false)
+          viewController.configure(
+            with: uri, index: index, imageCache: self.imageCache, hasHighQuality: false)
           completion(viewController)
         }
       }
@@ -148,7 +152,8 @@ class GalleryImageViewerView: ExpoView {
     stopActiveMediaPlayback()
 
     let uri = uris[index]
-    let direction: UIPageViewController.NavigationDirection = index > currentIndex ? .forward : .reverse
+    let direction: UIPageViewController.NavigationDirection =
+      index > currentIndex ? .forward : .reverse
 
     let viewController = createAppropriateViewController(for: uri, at: index)
 
@@ -306,7 +311,9 @@ extension GalleryImageViewerView: UIPageViewControllerDataSource {
         viewController.delegate = self
         activeMediaViewController = viewController  // Track the new active controller
         return viewController
-      } else if mediaType == .video, let playerItem = loadedPlayerItems[uri]?.copy() as? AVPlayerItem {
+      } else if mediaType == .video,
+        let playerItem = loadedPlayerItems[uri]?.copy() as? AVPlayerItem
+      {
         let viewController = VideoViewController()
         viewController.configure(with: playerItem, uri: uri, index: index)
         viewController.delegate = self
@@ -320,7 +327,8 @@ extension GalleryImageViewerView: UIPageViewControllerDataSource {
     let hasHighQuality = highQualityLoadedURIs.contains(uri)
     let viewController = ImagePageViewController()
     viewController.delegate = self
-    viewController.configure(with: uri, index: index, imageCache: imageCache, hasHighQuality: hasHighQuality)
+    viewController.configure(
+      with: uri, index: index, imageCache: imageCache, hasHighQuality: hasHighQuality)
 
     // Immediately start the media detection and loading process
     loadMediaForPageAndReplace(uri: uri, index: index, currentViewController: viewController)
@@ -328,7 +336,9 @@ extension GalleryImageViewerView: UIPageViewControllerDataSource {
     return viewController
   }
 
-  private func loadMediaForPageAndReplace(uri: String, index: Int, currentViewController: UIViewController) {
+  private func loadMediaForPageAndReplace(
+    uri: String, index: Int, currentViewController: UIViewController
+  ) {
     // Skip if we already know this is a regular image
     if let mediaType = mediaTypeCache[uri], mediaType == .image {
       return
@@ -357,7 +367,8 @@ extension GalleryImageViewerView: UIPageViewControllerDataSource {
           DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
-            imageLoader.loadMedia(from: uri) { [weak self, weak currentViewController] mediaResult, error in
+            imageLoader.loadMedia(from: uri) {
+              [weak self, weak currentViewController] mediaResult, error in
               guard
                 let self = self,
                 let mediaResult = mediaResult,
@@ -474,7 +485,9 @@ extension GalleryImageViewerView: UIPageViewControllerDataSource {
   }
 
   // Load the media type and content in the background if needed
-  private func loadMediaTypeIfNeeded(for uri: String, at index: Int, currentViewController: UIViewController) {
+  private func loadMediaTypeIfNeeded(
+    for uri: String, at index: Int, currentViewController: UIViewController
+  ) {
     // Skip if we already know the media type
     if mediaTypeCache[uri] != nil {
       return
@@ -495,7 +508,8 @@ extension GalleryImageViewerView: UIPageViewControllerDataSource {
           if mediaType == .image { return }
 
           // For other media types, continue loading the full content
-          imageLoader.loadMedia(from: uri) { [weak self, weak currentViewController] mediaResult, error in
+          imageLoader.loadMedia(from: uri) {
+            [weak self, weak currentViewController] mediaResult, error in
             guard let self = self,
               let currentViewController = currentViewController,
               currentViewController.isViewLoaded
@@ -577,7 +591,9 @@ extension GalleryImageViewerView: UIPageViewControllerDelegate {
       }
 
       // Update the active media controller reference
-      if currentViewController is VideoViewController || currentViewController is LivePhotoViewController {
+      if currentViewController is VideoViewController
+        || currentViewController is LivePhotoViewController
+      {
         activeMediaViewController = currentViewController
       }
 
@@ -587,7 +603,8 @@ extension GalleryImageViewerView: UIPageViewControllerDelegate {
       onPageChange(["index": currentIndex, "uri": uri])
 
       // Now use our improved method to load the media if needed
-      loadMediaForPageAndReplace(uri: uri, index: index, currentViewController: currentViewController)
+      loadMediaForPageAndReplace(
+        uri: uri, index: index, currentViewController: currentViewController)
     }
   }
 
@@ -615,7 +632,9 @@ extension GalleryImageViewerView: MediaViewControllerDelegate {
 
 // MARK: - ImagePageViewControllerDelegate
 extension GalleryImageViewerView: ImagePageViewControllerDelegate {
-  func imagePageViewController(_ controller: ImagePageViewController, didLoadHighQualityImage uri: String) {
+  func imagePageViewController(
+    _ controller: ImagePageViewController, didLoadHighQualityImage uri: String
+  ) {
     highQualityLoadedURIs.insert(uri)
     onImageLoaded(["uri": uri, "index": controller.index])
   }
@@ -624,7 +643,9 @@ extension GalleryImageViewerView: ImagePageViewControllerDelegate {
 extension GalleryImageViewerView: UIScrollViewDelegate {
   // Add method to initialize page view controller
   private func setupPageViewControllerGestures() {
-    if let scrollView = pageViewController.view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
+    if let scrollView = pageViewController.view.subviews.first(where: { $0 is UIScrollView })
+      as? UIScrollView
+    {
       scrollView.delegate = self
     }
   }
@@ -632,6 +653,17 @@ extension GalleryImageViewerView: UIScrollViewDelegate {
   // Detect when the page view controller's scroll view begins dragging
   func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
     // Notify all live photo view controllers that page swiping has begun
-    NotificationCenter.default.post(name: Notification.Name("PageControllerWillScroll"), object: nil)
+    NotificationCenter.default.post(
+      name: Notification.Name("PageControllerWillScroll"), object: nil)
+  }
+}
+
+extension GalleryImageViewerView: ViewerProtocol {
+  func setImageData(uris: [String], startIndex: Int) {
+    loadImages(uris: uris, startIndex: startIndex)
+  }
+
+  func goToPage(_ index: Int) {
+    goToPageWithIndex(index)
   }
 }

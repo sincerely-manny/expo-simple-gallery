@@ -3,11 +3,11 @@ import SwiftUI
 import UIKit
 
 // Hosts the SwiftUI view inside an ExpoView, bridging props and events
-final class SwiftUIGalleryHostView: ExpoView {
+final class SwiftUIGalleryHostView: ExpoView, ViewerProtocol {
   // Events exposed to JS
-  let onPageChange = EventDispatcher()
-  let onImageLoaded = EventDispatcher()
-  let onDismissAttempt = EventDispatcher()
+  var onPageChange = EventDispatcher()
+  var onImageLoaded = EventDispatcher()
+  var onDismissAttempt = EventDispatcher()
 
   private let viewModel = SwiftUIGalleryViewModel()
 
