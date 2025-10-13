@@ -1,5 +1,12 @@
-import { getAssetsAsync, MediaType, requestPermissionsAsync } from 'expo-media-library';
-import { type ExpoSimpleGalleryMethods, ExpoSimpleGalleryView } from 'expo-simple-gallery';
+import {
+  MediaType,
+  getAssetsAsync,
+  requestPermissionsAsync,
+} from 'expo-media-library';
+import {
+  type ExpoSimpleGalleryMethods,
+  ExpoSimpleGalleryView,
+} from 'expo-simple-gallery';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -66,9 +73,18 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Module API Example</Text>
       <View style={styles.buttonContainer}>
-        <Button title="Select all" onPress={() => galleryRef.current?.setSelected(assets)} />
-        <Button title="Deselect all" onPress={() => galleryRef.current?.setSelected([])} />
-        <Button title="Toggle filter even" onPress={() => setIsFiltered((prev) => !prev)} />
+        <Button
+          title="Select all"
+          onPress={() => galleryRef.current?.setSelected(assets)}
+        />
+        <Button
+          title="Deselect all"
+          onPress={() => galleryRef.current?.setSelected([])}
+        />
+        <Button
+          title="Toggle filter even"
+          onPress={() => setIsFiltered((prev) => !prev)}
+        />
       </View>
       {assets.length !== 0 ? (
         <ExpoSimpleGalleryView
@@ -76,7 +92,9 @@ export default function App() {
           assets={assetsFiltered}
           style={styles.view}
           columnsCount={4}
-          thumbnailOverlayComponent={({ selected }) => <Checkbox checked={selected} />}
+          thumbnailOverlayComponent={({ selected }) => (
+            <Checkbox checked={selected} />
+          )}
           fullscreenViewOverlayComponent={({ selected, toggleSelection }) => (
             <View style={{ position: 'absolute', top: 80, right: 20 }}>
               <Checkbox checked={selected} onPress={() => toggleSelection()} />
@@ -93,7 +111,7 @@ export default function App() {
           onSelectionChange={({ nativeEvent }) => {
             console.log(nativeEvent.selected);
           }}
-          thumbnailPressAction="select"
+          thumbnailPressAction="open"
           thumbnailLongPressAction="preview"
           thumbnailPanAction="select"
           showMediaTypeIcon={false}
