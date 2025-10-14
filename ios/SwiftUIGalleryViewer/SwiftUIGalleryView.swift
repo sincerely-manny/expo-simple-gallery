@@ -12,15 +12,10 @@ struct SwiftUIGalleryView: View {
   var onImageLoaded: (Int, String) -> Void
   var onDismissAttempt: () -> Void
 
-  @State private var backgroundOpacity: Double = 1.0
   var body: some View {
     ZStack {
-      Color.black
-        .opacity(backgroundOpacity)
-        .ignoresSafeArea()
-
       if viewModel.uris.isEmpty {
-        Color.black.ignoresSafeArea()
+        Color.clear.ignoresSafeArea()
       } else {
         TabView(selection: $viewModel.index) {
           ForEach(viewModel.uris.indices, id: \.self) { i in
@@ -32,7 +27,7 @@ struct SwiftUIGalleryView: View {
               onDragProgress: { _ in }
             )
             .tag(i)
-            .background(Color.black)
+            .background(.clear)
             .ignoresSafeArea()
           }
         }

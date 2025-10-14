@@ -51,7 +51,7 @@ struct PageMediaView: View {
           PlayerView(player: player)
             .frame(width: proxy.size.width, height: proxy.size.height)
         case .none:
-          Color.black
+          Color.clear
         }
       }
       .scaleEffect(scale)

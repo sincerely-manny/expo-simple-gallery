@@ -115,7 +115,8 @@ export default function App() {
           thumbnailLongPressAction="preview"
           thumbnailPanAction="select"
           showMediaTypeIcon={false}
-          viewer="UIKit"
+          fullscreenViewOverlayStyle={{ backgroundColor: 'red' }}
+          viewer="SwiftUI"
         />
       ) : (
         <View style={styles.preloaderContainer}>

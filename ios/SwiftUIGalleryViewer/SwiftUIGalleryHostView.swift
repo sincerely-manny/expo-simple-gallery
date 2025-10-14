@@ -33,7 +33,7 @@ final class SwiftUIGalleryHostView: ExpoView, ViewerProtocol {
       }
     )
     let hc = UIHostingController(rootView: swiftUIView)
-    hc.view.backgroundColor = .black
+    hc.view.backgroundColor = .clear
     return hc
   }()
 
@@ -47,7 +47,7 @@ final class SwiftUIGalleryHostView: ExpoView, ViewerProtocol {
 
     // Attach hostingController's view as a subview (triggers lazy init safely)
     let hostedView = hostingController.view!
-    hostedView.backgroundColor = .black
+    hostedView.backgroundColor = .clear
     hostedView.translatesAutoresizingMaskIntoConstraints = false
     addSubview(hostedView)
 
