@@ -81,9 +81,9 @@ final class GalleryViewerContainer: ExpoView {
   }
 
   func setViewerType(_ viewerTypeString: String) {
-    print("Setting viewer type to \(viewerTypeString)")
+    // print("Setting viewer type to \(viewerTypeString)")
     let newViewerType = ViewerType.from(string: viewerTypeString)
-    print("New viewer type: \(newViewerType)")
+    // print("New viewer type: \(newViewerType)")
 
     // Only switch if the type is different
     guard newViewerType != viewerType else { return }

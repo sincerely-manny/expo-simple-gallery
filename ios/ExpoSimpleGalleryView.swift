@@ -189,9 +189,9 @@ extension ExpoSimpleGalleryView: OverlayMountingDelegate {
 
   func unmount(overlay: ReactMountingComponent) {
     guard overlay.view.superview != nil else { return }
-    print("Unmounting overlay: \(overlay.view.accessibilityLabel ?? "unknown")")
-    print("Overlay index: \(overlay.index)")
-    print("Overlay parent: \(String(describing: overlay.view.superview))")
+    // print("Unmounting overlay: \(overlay.view.accessibilityLabel ?? "unknown")")
+    // print("Overlay index: \(overlay.index)")
+    // print("Overlay parent: \(String(describing: overlay.view.superview))")
     overlay.view.willMove(toSuperview: nil)
     overlay.view.removeFromSuperview()
   }

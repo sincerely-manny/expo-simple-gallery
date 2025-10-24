@@ -46,8 +46,9 @@ extension GalleryGridView {
 
     reloadData()
 
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+    DispatchQueue.main.async { [weak self] in
       guard let self = self else { return }
+      self.layoutIfNeeded()
 
       if !uris.isEmpty {
         let visibleItems = self.indexPathsForVisibleItems.map { $0.item }
@@ -72,8 +73,9 @@ extension GalleryGridView {
 
     reloadData()
 
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+    DispatchQueue.main.async { [weak self] in
       guard let self = self else { return }
+      self.layoutIfNeeded()
 
       if !uris.isEmpty {
         let visibleIndexPaths = self.indexPathsForVisibleItems

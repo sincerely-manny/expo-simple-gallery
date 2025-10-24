@@ -36,7 +36,7 @@ const NativeView: ComponentType<
 
 const NativeViewMemoized = memo(NativeView);
 
-const OVERLAYS_BUFFER = 10;
+const OVERLAYS_BUFFER = 24;
 
 export default forwardRef<ExpoSimpleGalleryMethods, ExpoSimpleGalleryViewProps>(
   function ExpoSimpleGalleryView(
