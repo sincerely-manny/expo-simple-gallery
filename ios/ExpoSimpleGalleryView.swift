@@ -4,10 +4,8 @@ import UIKit
 
 final class ExpoSimpleGalleryView: ExpoView, ContextMenuActionsDelegate {
   var galleryView: GalleryGridView?
-  private var overlays: [String: [Int: ReactMountingComponent]] = [
-    "thumbnail": [:],
-    "sectionHeader": [:],
-  ]
+  private var thumbnailOverlays: [Int: ReactMountingComponent] = [:]
+  private var sectionHeaderOverlays: [Int: ReactMountingComponent] = [:]
 
   let onOverlayPreloadRequested = EventDispatcher()
   let onThumbnailPress = EventDispatcher()
@@ -53,7 +51,7 @@ final class ExpoSimpleGalleryView: ExpoView, ContextMenuActionsDelegate {
         return
       }
       let component = ReactMountingComponent(view: childComponentView, index: index)
-      self.overlays["thumbnail"]?[id] = component
+      self.thumbnailOverlays[id] = component
 
       if let cell = self.galleryView?.cell(withIndex: id) {
         self.mount(to: cell, overlay: component)
@@ -62,7 +60,7 @@ final class ExpoSimpleGalleryView: ExpoView, ContextMenuActionsDelegate {
       guard let sectionId = Int(label.replacingOccurrences(of: "SectionHeaderOverlay_", with: ""))
       else { return }
       let component = ReactMountingComponent(view: childComponentView, index: index)
-      self.overlays["sectionHeader"]?[sectionId] = component
+      self.sectionHeaderOverlays[sectionId] = component
 
       if let galleryView = self.galleryView, galleryView.isGroupedLayout {
         let indexPath = IndexPath(item: 0, section: sectionId)
@@ -86,11 +84,11 @@ final class ExpoSimpleGalleryView: ExpoView, ContextMenuActionsDelegate {
       guard let id = Int(label.replacingOccurrences(of: "GalleryViewOverlay_", with: "")) else {
         return
       }
-      overlays["thumbnail"]?[id] = nil
+      thumbnailOverlays[id] = nil
     } else if label.starts(with: "SectionHeaderOverlay_") {
       guard let sectionId = Int(label.replacingOccurrences(of: "SectionHeaderOverlay_", with: ""))
       else { return }
-      overlays["sectionHeader"]?[sectionId] = nil
+      sectionHeaderOverlays[sectionId] = nil
     }
   }
 
@@ -146,9 +144,9 @@ extension ExpoSimpleGalleryView: OverlayMountingDelegate {
     guard let containerId = container.containerIdentifier else { return }
     var component: ReactMountingComponent?
     if container is GalleryCell {
-      component = overlays["thumbnail"]?[containerId]
+      component = thumbnailOverlays[containerId]
     } else if container is GallerySectionHeaderView {
-      component = overlays["sectionHeader"]?[containerId]
+      component = sectionHeaderOverlays[containerId]
     }
 
     if let component = component {
