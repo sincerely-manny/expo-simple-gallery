@@ -14,6 +14,7 @@ final class ExpoSimpleGalleryView: ExpoView, ContextMenuActionsDelegate {
   let onSectionHeadersVisible = EventDispatcher()
   let onPreviewMenuOptionSelected = EventDispatcher()
 
+  @MainActor
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     galleryView = GalleryGridView(
@@ -29,14 +30,17 @@ final class ExpoSimpleGalleryView: ExpoView, ContextMenuActionsDelegate {
     galleryView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
   }
 
+  @MainActor
   func callSuperMountChildComponentView(_ childComponentView: UIView, index: Int) {
     super.mountChildComponentView(childComponentView, index: index)
   }
 
+  @MainActor
   func callSuperUnmountChildComponentView(_ childComponentView: UIView, index: Int) {
     super.unmountChildComponentView(childComponentView, index: index)
   }
 
+  @MainActor
   override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
     // DispatchQueue.main.async { [weak self] in
     //   guard let self else { return }
@@ -75,6 +79,7 @@ final class ExpoSimpleGalleryView: ExpoView, ContextMenuActionsDelegate {
     // }
   }
 
+  @MainActor
   override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
     let component = ReactMountingComponent(view: childComponentView, index: index)
     self.unmount(overlay: component)
@@ -92,6 +97,7 @@ final class ExpoSimpleGalleryView: ExpoView, ContextMenuActionsDelegate {
     }
   }
 
+  @MainActor
   deinit {
     // Clean up all visible containers
     galleryView?.visibleCells().forEach { cell in
@@ -112,6 +118,7 @@ final class ExpoSimpleGalleryView: ExpoView, ContextMenuActionsDelegate {
   }
 }
 
+@MainActor
 extension ExpoSimpleGalleryView: GestureEventDelegate {
   func galleryGrid(_ gallery: GalleryGridView, didPressCell cell: PressedCell) {
     onThumbnailPress(cell.dict())
@@ -126,6 +133,7 @@ extension ExpoSimpleGalleryView: GestureEventDelegate {
   }
 }
 
+@MainActor
 extension ExpoSimpleGalleryView: OverlayPreloadingDelegate {
   func galleryGrid(_ gallery: GalleryGridView, prefetchOverlaysFor range: (Int, Int)) {
     onOverlayPreloadRequested(["range": [range.0, range.1]])
@@ -139,6 +147,7 @@ extension ExpoSimpleGalleryView: OverlayPreloadingDelegate {
 }
 
 // MARK: - Overlay Mounting Implementation
+@MainActor
 extension ExpoSimpleGalleryView: OverlayMountingDelegate {
   func mount<T: OverlayContainer>(to container: T) {
     guard let containerId = container.containerIdentifier else { return }
