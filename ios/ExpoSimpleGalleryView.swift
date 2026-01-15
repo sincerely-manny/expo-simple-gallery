@@ -44,7 +44,10 @@ final class ExpoSimpleGalleryView: ExpoView, ContextMenuActionsDelegate {
   override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
     // DispatchQueue.main.async { [weak self] in
     //   guard let self else { return }
-    guard childComponentView.superview == nil else { return }
+    if childComponentView.superview != nil {
+      callSuperMountChildComponentView(childComponentView, index: index)
+      return
+    }
     guard let label = childComponentView.accessibilityLabel else {
       self.callSuperMountChildComponentView(childComponentView, index: index)
       return
